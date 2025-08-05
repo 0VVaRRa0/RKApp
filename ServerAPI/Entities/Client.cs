@@ -14,4 +14,6 @@ public partial class Client
     public string Email { get; set; } = null!;
 
     public string PhoneNumber { get; set; } = null!;
+
+    public virtual ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
 }

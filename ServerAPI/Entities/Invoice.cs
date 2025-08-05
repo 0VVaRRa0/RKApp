@@ -23,5 +23,7 @@ public partial class Invoice
 
     public string Status { get; set; } = null!;
 
+    public virtual Client Client { get; set; } = null!;
+
     public virtual Service Service { get; set; } = null!;
 }

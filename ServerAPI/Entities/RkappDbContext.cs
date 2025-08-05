@@ -45,6 +45,11 @@ public partial class RkappDbContext : DbContext
             entity.Property(e => e.ReceiptNumber).HasMaxLength(50);
             entity.Property(e => e.Status).HasMaxLength(20);
 
+            entity.HasOne(d => d.Client).WithMany(p => p.Invoices)
+                .HasForeignKey(d => d.ClientId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Invoice_Clients");
+
             entity.HasOne(d => d.Service).WithMany(p => p.Invoices)
                 .HasForeignKey(d => d.ServiceId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
