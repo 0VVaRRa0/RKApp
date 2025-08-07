@@ -22,6 +22,7 @@ public class MainForm : Form
         MinimumSize = windowSize;
         MaximumSize = windowSize;
         InitializeTabs();
+        Shown += RefreshPage;
     }
 
     public void InitializeTabs()
@@ -102,26 +103,23 @@ public class MainForm : Form
 
     private async void GetData()
     {
-        if (tabControl.SelectedTab!.Text == servicesStr)
-        {
-            var response = await httpClient.GetAsync($"{apiUrl}/api/services");
-            var data = await response.Content.ReadFromJsonAsync<List<ServiceDto>>();
-            servicesDataGrid.DataSource = data;
-            servicesDataGrid.Columns["Id"]!.Width = 50;
-        }
-        else if (tabControl.SelectedTab!.Text == clientsStr)
-        {
-            var response = await httpClient.GetAsync($"{apiUrl}/api/clients");
-            var data = await response.Content.ReadFromJsonAsync<List<ClientDto>>();
-            clientsDataGrid.DataSource = data;
-            clientsDataGrid.Columns["Id"]!.Width = 50;
-        }
-        else if (tabControl.SelectedTab!.Text == invoicesStr)
-        {
-            var response = await httpClient.GetAsync($"{apiUrl}/api/invoices");
-            var data = await response.Content.ReadFromJsonAsync<List<InvoiceDto>>();
-            invoicesDataGrid.DataSource = data;
-            invoicesDataGrid.Columns["Id"]!.Width = 50;
-        }
+        string tab = tabControl.SelectedTab!.Text;
+
+        if (tab == servicesStr)
+            await MakeRequest<ServiceDto>("api/services", servicesDataGrid);
+        else if (tab == clientsStr)
+            await MakeRequest<ClientDto>("api/clients", clientsDataGrid);
+        else if (tab == invoicesStr)
+            await MakeRequest<InvoiceDto>("api/invoices", invoicesDataGrid);
+    }
+
+    private async Task MakeRequest<T>(string apiEndpoint, DataGridView grid)
+    {
+        var response = await httpClient.GetAsync($"{apiUrl}/{apiEndpoint}");
+        response.EnsureSuccessStatusCode();
+
+        var data = await response.Content.ReadFromJsonAsync<List<T>>();
+        grid.DataSource = data;
+        grid.Columns["Id"]!.Width = 50;
     }
 }
