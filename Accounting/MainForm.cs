@@ -117,7 +117,7 @@ public class MainForm : Form
     {
         try
         {
-            var response = await httpClient.GetAsync($"{apiUrl}/api/{endpoint}");
+            var response = await httpClient.GetAsync($"{apiUrl}/api/{apiEndpoint}");
             response.EnsureSuccessStatusCode();
             var data = await response.Content.ReadFromJsonAsync<List<T>>() ?? new List<T>();
             grid.DataSource = data;
