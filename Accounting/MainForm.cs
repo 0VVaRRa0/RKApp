@@ -115,11 +115,17 @@ public class MainForm : Form
 
     private async Task MakeRequest<T>(string apiEndpoint, DataGridView grid)
     {
-        var response = await httpClient.GetAsync($"{apiUrl}/{apiEndpoint}");
-        response.EnsureSuccessStatusCode();
-
-        var data = await response.Content.ReadFromJsonAsync<List<T>>();
-        grid.DataSource = data;
-        grid.Columns["Id"]!.Width = 50;
+        try
+        {
+            var response = await httpClient.GetAsync($"{apiUrl}/api/{endpoint}");
+            response.EnsureSuccessStatusCode();
+            var data = await response.Content.ReadFromJsonAsync<List<T>>() ?? new List<T>();
+            grid.DataSource = data;
+            grid.Columns["Id"]!.Width = 50;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Ошибка при загрузке данных: {ex.Message}");
+        }
     }
 }
