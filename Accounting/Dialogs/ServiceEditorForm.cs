@@ -39,16 +39,16 @@ class ServiceEditorForm : Form
         {
             Button deleteButton = new();
             deleteButton.Text = "Удалить";
-            deleteButton.Click += DeleteService;
+            deleteButton.Click += SendRequest;
             buttonsPanel.Controls.Add(deleteButton);
 
             saveButton.Text = "Сохранить";
-            saveButton.Click += EditService;
+            saveButton.Click += SendRequest;
         }
         else
         {
             saveButton.Text = "Добавить";
-            saveButton.Click += CreateService;
+            saveButton.Click += SendRequest;
         }
 
         TableLayoutPanel serviceTable = new();
@@ -74,39 +74,32 @@ class ServiceEditorForm : Form
         Controls.Add(table);
     }
 
-    private async void CreateService(object? sender, EventArgs e)
+    private async void SendRequest(object? sender, EventArgs e)
     {
-        _service.Name = textBox.Text;
-        var response = await httpClient.PostAsJsonAsync($"{apiUrl}/api/services", _service);
-        if (response.IsSuccessStatusCode) MessageBox.Show("Услуга добавлена!", "Успех");
+        if (sender is not Button clickedButton) return;
+        string messageBoxText = "";
+        HttpResponseMessage? response = null;
+        if (clickedButton.Text == "Добавить")
+        {
+            if (textBox.Text == "") { MessageBox.Show("Заполните все поля!", "Ошибка⚠️"); return; }
+            _service.Name = textBox.Text;
+            messageBoxText = "Услуга добавлена!";
+            response = await httpClient.PostAsJsonAsync($"{apiUrl}/api/services", _service);
+        }
+        else if (clickedButton.Text == "Сохранить")
+        {
+            if (textBox.Text == "") { MessageBox.Show("Заполните все поля!", "Ошибка⚠️"); return; }
+            _service.Name = textBox.Text;
+            messageBoxText = "Услуга изменена!";
+            response = await httpClient.PutAsJsonAsync($"{apiUrl}/api/services/{_service.Id}", _service);
+        }
+        else if (clickedButton.Text == "Удалить")
+        {
+            messageBoxText = "Услуга удалена!";
+            response = await httpClient.DeleteAsync($"{apiUrl}/api/services/{_service.Id}");
+        }
+        if (response!.IsSuccessStatusCode) MessageBox.Show(messageBoxText, "Успех✅");
         DialogResult = DialogResult.OK;
         Close();
     }
-
-    private async void EditService(object? sender, EventArgs e)
-    {
-        _service.Name = textBox.Text;
-        var response = await httpClient.PutAsJsonAsync($"{apiUrl}/api/services/{_service.Id}", _service);
-        if (response.IsSuccessStatusCode) MessageBox.Show("Услуга изменена!", "Успех");
-        DialogResult = DialogResult.OK;
-        Close();
-    }
-
-    private async void DeleteService(object? sender, EventArgs e)
-    {
-        var response = await httpClient.DeleteAsync($"{apiUrl}/api/services/{_service.Id}");
-        if (response.IsSuccessStatusCode) MessageBox.Show("Услуга удалена!", "Успех");
-        DialogResult = DialogResult.OK;
-        Close();
-    }
-
-    // private async void SendRequest(object? sender, EventArgs e)
-    // {
-    //     if (sender is Button clickedButton)
-    //     {
-    //         if (clickedButton.Text == "")
-    //     }
-    //     var response = await httpClient.DeleteAsync($"{apiUrl}/api/services/{_service.Id}");
-    //     response.EnsureSuccessStatusCode();
-    // }
 }
