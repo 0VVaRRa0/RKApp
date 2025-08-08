@@ -78,6 +78,7 @@ public class MainForm : Form
     private DataGridView CreateDataGrid(string title)
     {
         DataGridView dataGrid = new();
+        dataGrid.ReadOnly = true;
         dataGrid.Dock = DockStyle.Fill;
         dataGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         dataGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
@@ -87,7 +88,11 @@ public class MainForm : Form
             servicesDataGrid = dataGrid;
             servicesDataGrid.CellDoubleClick += EditService;
         }
-        else if (title == clientsStr) clientsDataGrid = dataGrid;
+        else if (title == clientsStr)
+        {
+            clientsDataGrid = dataGrid;
+            clientsDataGrid.CellDoubleClick += EditClient;
+        }
         else if (title == invoicesStr) invoicesDataGrid = dataGrid;
         return dataGrid;
     }
@@ -102,7 +107,7 @@ public class MainForm : Form
     private void CreateObject(object? sender, EventArgs e)
     {
         if (tabControl.SelectedTab!.Text == servicesStr) CreateService(null, EventArgs.Empty);
-        else if (tabControl.SelectedTab!.Text == clientsStr) MessageBox.Show("Добавить клиента");
+        else if (tabControl.SelectedTab!.Text == clientsStr) CreateClient(null, EventArgs.Empty);
         else if (tabControl.SelectedTab!.Text == invoicesStr) MessageBox.Show("Добавить счёт");
     }
 
@@ -148,6 +153,26 @@ public class MainForm : Form
         var row = servicesDataGrid.SelectedRows[0];
         var service = row.DataBoundItem as ServiceDto;
         ServiceEditorForm form = new(service);
+        if (form.ShowDialog() == DialogResult.OK)
+        {
+            RefreshPage(null, EventArgs.Empty);
+        }
+    }
+
+    private void CreateClient(object? sender, EventArgs e)
+    {
+        ClientEditorForm form = new(null);
+        if (form.ShowDialog() == DialogResult.OK)
+        {
+            RefreshPage(null, EventArgs.Empty);
+        }
+    }
+
+    private void EditClient(object? sender, EventArgs e)
+    {
+        var row = clientsDataGrid.SelectedRows[0];
+        var client = row.DataBoundItem as ClientDto;
+        ClientEditorForm form = new(client);
         if (form.ShowDialog() == DialogResult.OK)
         {
             RefreshPage(null, EventArgs.Empty);
