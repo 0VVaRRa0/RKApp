@@ -1,17 +1,18 @@
 using System.Net.Http.Json;
+using Accounting.Dialogs;
 using Accounting.Dtos;
 
 namespace Accounting;
 
 public class MainForm : Form
 {
-    private HttpClient httpClient = new();
-    private string apiUrl = "https://4dbc9d24d6f6.ngrok-free.app";
+    private readonly HttpClient httpClient = new();
+    private readonly string apiUrl = "https://63b1473a2aa1.ngrok-free.app";
     private Size windowSize = new(1366, 768);
     TabControl tabControl = null!;
-    private string servicesStr = "Услуги";
-    private string clientsStr = "Клиенты";
-    private string invoicesStr = "Счета";
+    private readonly string servicesStr = "Услуги";
+    private readonly string clientsStr = "Клиенты";
+    private readonly string invoicesStr = "Счета";
     private DataGridView servicesDataGrid = null!;
     private DataGridView clientsDataGrid = null!;
     private DataGridView invoicesDataGrid = null!;
@@ -50,7 +51,7 @@ public class MainForm : Form
         table.ColumnCount = 1;
         table.RowCount = 2;
         table.Dock = DockStyle.Fill;
-        table.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
+        table.RowStyles.Add(new RowStyle(SizeType.Absolute, 35));
         table.CellBorderStyle = TableLayoutPanelCellBorderStyle.Single;
         table.Controls.Add(CreateButtonsPanel(), 0, 0);
         table.Controls.Add(CreateDataGrid(title), 0, 1);
@@ -81,7 +82,11 @@ public class MainForm : Form
         dataGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         dataGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 
-        if (title == servicesStr) servicesDataGrid = dataGrid;
+        if (title == servicesStr)
+        {
+            servicesDataGrid = dataGrid;
+            servicesDataGrid.CellDoubleClick += EditService;
+        }
         else if (title == clientsStr) clientsDataGrid = dataGrid;
         else if (title == invoicesStr) invoicesDataGrid = dataGrid;
         return dataGrid;
@@ -96,7 +101,7 @@ public class MainForm : Form
 
     private void CreateObject(object? sender, EventArgs e)
     {
-        if (tabControl.SelectedTab!.Text == servicesStr) MessageBox.Show("Добавить услугу");
+        if (tabControl.SelectedTab!.Text == servicesStr) CreateService(null, EventArgs.Empty);
         else if (tabControl.SelectedTab!.Text == clientsStr) MessageBox.Show("Добавить клиента");
         else if (tabControl.SelectedTab!.Text == invoicesStr) MessageBox.Show("Добавить счёт");
     }
@@ -106,18 +111,18 @@ public class MainForm : Form
         string tab = tabControl.SelectedTab!.Text;
 
         if (tab == servicesStr)
-            await MakeRequest<ServiceDto>("api/services", servicesDataGrid);
+            await SendRequest<ServiceDto>("api/services", servicesDataGrid);
         else if (tab == clientsStr)
-            await MakeRequest<ClientDto>("api/clients", clientsDataGrid);
+            await SendRequest<ClientDto>("api/clients", clientsDataGrid);
         else if (tab == invoicesStr)
-            await MakeRequest<InvoiceDto>("api/invoices", invoicesDataGrid);
+            await SendRequest<InvoiceDto>("api/invoices", invoicesDataGrid);
     }
 
-    private async Task MakeRequest<T>(string apiEndpoint, DataGridView grid)
+    private async Task SendRequest<T>(string apiEndpoint, DataGridView grid)
     {
         try
         {
-            var response = await httpClient.GetAsync($"{apiUrl}/api/{apiEndpoint}");
+            var response = await httpClient.GetAsync($"{apiUrl}/{apiEndpoint}");
             response.EnsureSuccessStatusCode();
             var data = await response.Content.ReadFromJsonAsync<List<T>>() ?? new List<T>();
             grid.DataSource = data;
@@ -126,6 +131,26 @@ public class MainForm : Form
         catch (Exception ex)
         {
             MessageBox.Show($"Ошибка при загрузке данных: {ex.Message}");
+        }
+    }
+
+    private void CreateService(object? sender, EventArgs e)
+    {
+        ServiceEditorForm form = new(null);
+        if (form.ShowDialog() == DialogResult.OK)
+        {
+            RefreshPage(null, EventArgs.Empty);
+        }
+    }
+
+    private void EditService(object? sender, EventArgs e)
+    {
+        var row = servicesDataGrid.SelectedRows[0];
+        var service = row.DataBoundItem as ServiceDto;
+        ServiceEditorForm form = new(service);
+        if (form.ShowDialog() == DialogResult.OK)
+        {
+            RefreshPage(null, EventArgs.Empty);
         }
     }
 }
