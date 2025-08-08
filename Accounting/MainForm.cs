@@ -93,7 +93,11 @@ public class MainForm : Form
             clientsDataGrid = dataGrid;
             clientsDataGrid.CellDoubleClick += EditClient;
         }
-        else if (title == invoicesStr) invoicesDataGrid = dataGrid;
+        else if (title == invoicesStr)
+        {
+            invoicesDataGrid = dataGrid;
+            invoicesDataGrid.CellDoubleClick += EditInvoice;
+        };
         return dataGrid;
     }
 
@@ -108,7 +112,7 @@ public class MainForm : Form
     {
         if (tabControl.SelectedTab!.Text == servicesStr) CreateService(null, EventArgs.Empty);
         else if (tabControl.SelectedTab!.Text == clientsStr) CreateClient(null, EventArgs.Empty);
-        else if (tabControl.SelectedTab!.Text == invoicesStr) MessageBox.Show("Добавить счёт");
+        else if (tabControl.SelectedTab!.Text == invoicesStr) CreateInvoice(null, EventArgs.Empty);
     }
 
     private async void GetData()
@@ -173,6 +177,26 @@ public class MainForm : Form
         var row = clientsDataGrid.SelectedRows[0];
         var client = row.DataBoundItem as ClientDto;
         ClientEditorForm form = new(client);
+        if (form.ShowDialog() == DialogResult.OK)
+        {
+            RefreshPage(null, EventArgs.Empty);
+        }
+    }
+
+    private void CreateInvoice(object? sender, EventArgs e)
+    {
+        InvoiceEditorForm form = new(null);
+        if (form.ShowDialog() == DialogResult.OK)
+        {
+            RefreshPage(null, EventArgs.Empty);
+        }
+    }
+
+    private void EditInvoice(object? sender, EventArgs e)
+    {
+        var row = invoicesDataGrid.SelectedRows[0];
+        var invoice = row.DataBoundItem as InvoiceDto;
+        InvoiceEditorForm form = new(invoice);
         if (form.ShowDialog() == DialogResult.OK)
         {
             RefreshPage(null, EventArgs.Empty);
