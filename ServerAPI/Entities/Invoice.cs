@@ -19,7 +19,7 @@ public partial class Invoice
 
     public DateOnly? PaymentDate { get; set; }
 
-    public string ReceiptNumber { get; set; } = null!;
+    public string? ReceiptNumber { get; set; }
 
     public string Status { get; set; } = null!;
 

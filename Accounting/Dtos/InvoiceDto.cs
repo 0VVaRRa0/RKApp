@@ -9,7 +9,7 @@ public class InvoiceDto
     public DateOnly IssueDate { get; set; }
     public DateOnly DueDate { get; set; }
     public DateOnly? PaymentDate { get; set; }
-    public string ReceiptNumber { get; set; } = null!;
+    public string? ReceiptNumber { get; set; }
     public string Status { get; set; } = null!;
 }
 
