@@ -7,7 +7,7 @@ namespace Accounting;
 public class MainForm : Form
 {
     private readonly HttpClient httpClient = new();
-    private readonly string apiUrl = "https://63b1473a2aa1.ngrok-free.app";
+    private readonly string apiUrl = "https://81951d3b8c90.ngrok-free.app";
     private Size windowSize = new(1366, 768);
     TabControl tabControl = null!;
     private readonly string servicesStr = "Услуги";

@@ -6,19 +6,20 @@ namespace Accounting.Dialogs;
 class InvoiceEditorForm : Form
 {
     private readonly HttpClient httpClient = new();
-    private readonly string apiUrl = "https://63b1473a2aa1.ngrok-free.app";
+    private readonly string apiUrl = "https://81951d3b8c90.ngrok-free.app";
     private Size windowSize = new(683, 384);
     private readonly InvoiceDto _invoice = null!;
-    // TextBox invoiceLoginTB = null!;
-    // TextBox invoiceFullNameTB = null!;
-    // TextBox invoiceEmailTB = null!;
-    // TextBox invoicePhoneNumberTB = null!;
+    NumericUpDown invoiceServiceID = null!;
+    NumericUpDown invoiceClientID = null!;
+    NumericUpDown invoiceAmount = null!;
+    DateTimePicker invoiceIssueDate = null!;
+    DateTimePicker invoiceDueDate = null!;
     public InvoiceEditorForm(InvoiceDto? invoice = null)
     {
         Text = "Счёт";
         MinimumSize = windowSize;
         MaximumSize = windowSize;
-        _invoice = invoice ?? new InvoiceDto();
+        _invoice = invoice ?? new InvoiceDto{Status = "NOT PAID"};
         InitializeComponents();
     }
 
@@ -60,21 +61,52 @@ class InvoiceEditorForm : Form
         invoiceTable.RowCount = 6;
         invoiceTable.CellBorderStyle = TableLayoutPanelCellBorderStyle.Single;
 
-        // invoiceLoginTB = CreateTextBox(_invoice.Login);
-        // invoiceFullNameTB = CreateTextBox(_invoice.FullName);
-        // invoiceEmailTB = CreateTextBox(_invoice.Email);
-        // invoicePhoneNumberTB = CreateTextBox(_invoice.PhoneNumber);
+        invoiceServiceID = new();
+        invoiceServiceID.Minimum = 0;
+        invoiceServiceID.Increment = 1;
+        if (_invoice.Id != 0) invoiceServiceID.Value = _invoice.ServiceId;
+
+        invoiceClientID = new();
+        invoiceClientID.Minimum = 0;
+        invoiceClientID.Increment = 1;
+        if (_invoice.Id != 0) invoiceClientID.Value = _invoice.ClientId;
+
+        invoiceAmount = new();
+        invoiceAmount.Minimum = 0;
+        invoiceAmount.Maximum = decimal.MaxValue;
+        invoiceAmount.DecimalPlaces = 2;
+
+        invoiceIssueDate = new();
+        invoiceIssueDate.Format = DateTimePickerFormat.Short;
+        invoiceIssueDate.Value = DateTime.Today;
+        invoiceIssueDate.MinDate = DateTime.Today;
+        if (_invoice.Id != 0)
+        {
+            invoiceIssueDate.MinDate = _invoice.IssueDate.ToDateTime(TimeOnly.MaxValue);
+            invoiceIssueDate.Value = _invoice.IssueDate.ToDateTime(TimeOnly.MaxValue);
+        }
+
+        invoiceDueDate = new();
+        invoiceDueDate.Format = DateTimePickerFormat.Short;
+        invoiceDueDate.Value = DateTime.Today;
+        invoiceDueDate.MinDate = DateTime.Today;
+        if (_invoice.Id != 0)
+        {
+            invoiceDueDate.MinDate = _invoice.IssueDate.ToDateTime(TimeOnly.MaxValue);
+            invoiceDueDate.Value = _invoice.DueDate.ToDateTime(TimeOnly.MaxValue);
+        }
+
+        invoiceTable.Controls.Add(invoiceServiceID, 1, 0);
+        invoiceTable.Controls.Add(invoiceClientID, 1, 1);
+        invoiceTable.Controls.Add(invoiceAmount, 1, 2);
+        invoiceTable.Controls.Add(invoiceIssueDate, 1, 3);
+        invoiceTable.Controls.Add(invoiceDueDate, 1, 4);
 
         invoiceTable.Controls.Add(CreateLabel("ID Услуги:"), 0, 0);
         invoiceTable.Controls.Add(CreateLabel("ID Клиента:"), 0, 1);
         invoiceTable.Controls.Add(CreateLabel("Сумма:"), 0, 2);
         invoiceTable.Controls.Add(CreateLabel("Дата выставления:"), 0, 3);
         invoiceTable.Controls.Add(CreateLabel("Оплатить до:"), 0, 4);
-
-        // invoiceTable.Controls.Add(invoiceLoginTB, 1, 0);
-        // invoiceTable.Controls.Add(invoiceFullNameTB, 1, 1);
-        // invoiceTable.Controls.Add(invoiceEmailTB, 1, 2);
-        // invoiceTable.Controls.Add(invoicePhoneNumberTB, 1, 3);
 
         table.Controls.Add(buttonsPanel, 0, 0);
         table.Controls.Add(invoiceTable, 0, 1);
@@ -136,10 +168,9 @@ class InvoiceEditorForm : Form
     // private bool CheckFields()
     // {
     //     if (
-    //         invoiceLoginTB.Text == ""
-    //         || invoiceFullNameTB.Text == ""
-    //         || invoiceEmailTB.Text == ""
-    //         || invoicePhoneNumberTB.Text == ""
+    //         invoiceServiceID.Value == 0
+    //         || invoiceClientID.Value == 0
+    //         || invoiceAmount.Value == 0
     //     )
     //     {
     //         MessageBox.Show("Заполните все поля!", "Ошибка⚠️");
@@ -147,10 +178,7 @@ class InvoiceEditorForm : Form
     //     }
     //     else
     //     {
-    //         _invoice.Login = invoiceLoginTB.Text;
-    //         _invoice.FullName = invoiceFullNameTB.Text;
-    //         _invoice.Email = invoiceEmailTB.Text;
-    //         _invoice.PhoneNumber = invoicePhoneNumberTB.Text;
+    //         if (_invoice.Status == "PAI")
     //         return true;
     //     }
     // }
