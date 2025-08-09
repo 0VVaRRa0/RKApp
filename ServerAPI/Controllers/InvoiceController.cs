@@ -60,6 +60,12 @@ namespace ServerAPI.Controllers
         [HttpPost]
         public IActionResult CreateInvoice(InvoiceDto dto)
         {
+            var clientExists = _context.Clients.Any(c => c.Id == dto.ClientId);
+            if (!clientExists) return BadRequest($"Client with Id={dto.ClientId} does not exist");
+
+            var serviceExists = _context.Services.Any(s => s.Id == dto.ServiceId);
+            if (!serviceExists) return BadRequest($"Service with Id={dto.ServiceId} does not exist");
+
             var invoice = new Invoice
             {
                 ServiceId = dto.ServiceId,
@@ -79,6 +85,12 @@ namespace ServerAPI.Controllers
         [HttpPut("{id}")]
         public IActionResult UpdateInvoice(int id, InvoiceDto dto)
         {
+            var clientExists = _context.Clients.Any(c => c.Id == dto.ClientId);
+            if (!clientExists) return BadRequest($"Client with Id={dto.ClientId} does not exist");
+
+            var serviceExists = _context.Services.Any(s => s.Id == dto.ServiceId);
+            if (!serviceExists) return BadRequest($"Service with Id={dto.ServiceId} does not exist");
+
             var invoice = _context.Invoices.Find(id);
             if (invoice == null) return NotFound();
             invoice.ServiceId = dto.ServiceId;
