@@ -9,17 +9,19 @@ class InvoiceEditorForm : Form
     private readonly string apiUrl = "https://81951d3b8c90.ngrok-free.app";
     private Size windowSize = new(683, 384);
     private readonly InvoiceDto _invoice = null!;
-    NumericUpDown invoiceServiceID = null!;
-    NumericUpDown invoiceClientID = null!;
-    NumericUpDown invoiceAmount = null!;
-    DateTimePicker invoiceIssueDate = null!;
-    DateTimePicker invoiceDueDate = null!;
+    private NumericUpDown invoiceServiceID = null!;
+    private NumericUpDown invoiceClientID = null!;
+    private NumericUpDown invoiceAmount = null!;
+    private DateTimePicker invoiceIssueDate = null!;
+    private DateTimePicker invoiceDueDate = null!;
+    private Label invoicePaymentDate = null!;
+    private Label invoiceStatus = null!;
     public InvoiceEditorForm(InvoiceDto? invoice = null)
     {
         Text = "Счёт";
         MinimumSize = windowSize;
         MaximumSize = windowSize;
-        _invoice = invoice ?? new InvoiceDto{Status = "NOT PAID"};
+        _invoice = invoice ?? new InvoiceDto { Status = "NOT PAID" };
         InitializeComponents();
     }
 
@@ -43,7 +45,7 @@ class InvoiceEditorForm : Form
         {
             Button deleteButton = new();
             deleteButton.Text = "Удалить";
-            // deleteButton.Click += SendRequest;
+            deleteButton.Click += SendRequest;
             buttonsPanel.Controls.Add(deleteButton);
 
             saveButton.Text = "Сохранить";
@@ -52,13 +54,13 @@ class InvoiceEditorForm : Form
         else
         {
             saveButton.Text = "Добавить";
-            // saveButton.Click += SendRequest;
+            saveButton.Click += SendRequest;
         }
 
         TableLayoutPanel invoiceTable = new();
         invoiceTable.Dock = DockStyle.Fill;
         invoiceTable.ColumnCount = 2;
-        invoiceTable.RowCount = 6;
+        invoiceTable.RowCount = 8;
         invoiceTable.CellBorderStyle = TableLayoutPanelCellBorderStyle.Single;
 
         invoiceServiceID = new();
@@ -96,17 +98,29 @@ class InvoiceEditorForm : Form
             invoiceDueDate.Value = _invoice.DueDate.ToDateTime(TimeOnly.MaxValue);
         }
 
+        invoicePaymentDate = new();
+        if (_invoice.PaymentDate is null) invoicePaymentDate.Text = "--.--.----";
+        else invoicePaymentDate.Text = _invoice.PaymentDate.ToString();
+
+        invoiceStatus = new();
+        if (_invoice.Status == "NOT PAID") invoiceStatus.Text = "NOT PAID";
+        else invoiceStatus.Text = "PAID";
+
         invoiceTable.Controls.Add(invoiceServiceID, 1, 0);
         invoiceTable.Controls.Add(invoiceClientID, 1, 1);
         invoiceTable.Controls.Add(invoiceAmount, 1, 2);
         invoiceTable.Controls.Add(invoiceIssueDate, 1, 3);
         invoiceTable.Controls.Add(invoiceDueDate, 1, 4);
+        invoiceTable.Controls.Add(invoicePaymentDate, 1, 5);
+        invoiceTable.Controls.Add(invoiceStatus, 1, 6);
 
         invoiceTable.Controls.Add(CreateLabel("ID Услуги:"), 0, 0);
         invoiceTable.Controls.Add(CreateLabel("ID Клиента:"), 0, 1);
         invoiceTable.Controls.Add(CreateLabel("Сумма:"), 0, 2);
         invoiceTable.Controls.Add(CreateLabel("Дата выставления:"), 0, 3);
         invoiceTable.Controls.Add(CreateLabel("Оплатить до:"), 0, 4);
+        invoiceTable.Controls.Add(CreateLabel("Дата оплаты:"), 0, 5);
+        invoiceTable.Controls.Add(CreateLabel("Статус:"), 0, 6);
 
         table.Controls.Add(buttonsPanel, 0, 0);
         table.Controls.Add(invoiceTable, 0, 1);
@@ -131,55 +145,59 @@ class InvoiceEditorForm : Form
         return textBox;
     }
 
-    // private async void SendRequest(object? sender, EventArgs e)
-    // {
-    //     if (sender is not Button clickedButton) return;
-    //     if (!CheckFields() && clickedButton.Text != "Удалить") return;
+    private async void SendRequest(object? sender, EventArgs e)
+    {
+        if (sender is not Button clickedButton) return;
+        if (!CheckFields() && clickedButton.Text != "Удалить") return;
 
-    //     string messageBoxText = "";
-    //     HttpResponseMessage? response = null;
+        string messageBoxText = "";
+        HttpResponseMessage? response = null;
 
-    //     if (clickedButton.Text == "Добавить")
-    //     {
-    //         messageBoxText = "Счёт добавлен!";
-    //         response = await httpClient.PostAsJsonAsync($"{apiUrl}/api/invoices", _invoice);
-    //     }
-    //     else if (clickedButton.Text == "Сохранить")
-    //     {
-    //         messageBoxText = "Счёт изменён!";
-    //         response = await httpClient.PutAsJsonAsync($"{apiUrl}/api/invoices/{_invoice.Id}", _invoice);
-    //     }
-    //     else if (clickedButton.Text == "Удалить")
-    //     {
-    //         messageBoxText = "Счёт удалён!";
-    //         response = await httpClient.DeleteAsync($"{apiUrl}/api/invoices/{_invoice.Id}");
-    //     }
+        if (clickedButton.Text == "Добавить")
+        {
+            messageBoxText = "Счёт добавлен!";
+            response = await httpClient.PostAsJsonAsync($"{apiUrl}/api/invoices", _invoice);
+        }
+        else if (clickedButton.Text == "Сохранить")
+        {
+            messageBoxText = "Счёт изменён!";
+            response = await httpClient.PutAsJsonAsync($"{apiUrl}/api/invoices/{_invoice.Id}", _invoice);
+        }
+        else if (clickedButton.Text == "Удалить")
+        {
+            messageBoxText = "Счёт удалён!";
+            response = await httpClient.DeleteAsync($"{apiUrl}/api/invoices/{_invoice.Id}");
+        }
 
-    //     if (response != null && response.IsSuccessStatusCode)
-    //     {
-    //         MessageBox.Show(messageBoxText, "Успех✅");
-    //         DialogResult = DialogResult.OK;
-    //         Close();
-    //     }
-    //     else if (response is null) MessageBox.Show("Неизвестная кнопка", "Ошибка⚠️");
-    //     else if (!response.IsSuccessStatusCode) MessageBox.Show("Не удалось отправить запрос🔌", "Ошибка⚠️");
-    // }
+        if (response != null && response.IsSuccessStatusCode)
+        {
+            MessageBox.Show(messageBoxText, "Успех✅");
+            DialogResult = DialogResult.OK;
+            Close();
+        }
+        else if (response is null) MessageBox.Show("Неизвестная кнопка", "Ошибка⚠️");
+        else if (!response.IsSuccessStatusCode) MessageBox.Show("Не удалось отправить запрос🔌", "Ошибка⚠️");
+    }
 
-    // private bool CheckFields()
-    // {
-    //     if (
-    //         invoiceServiceID.Value == 0
-    //         || invoiceClientID.Value == 0
-    //         || invoiceAmount.Value == 0
-    //     )
-    //     {
-    //         MessageBox.Show("Заполните все поля!", "Ошибка⚠️");
-    //         return false;
-    //     }
-    //     else
-    //     {
-    //         if (_invoice.Status == "PAI")
-    //         return true;
-    //     }
-    // }
+    private bool CheckFields()
+    {
+        if (
+            invoiceServiceID.Value == 0
+            || invoiceClientID.Value == 0
+            || invoiceAmount.Value == 0
+        )
+        {
+            MessageBox.Show("Заполните все поля!", "Ошибка⚠️");
+            return false;
+        }
+        else
+        {
+            _invoice.ServiceId = Convert.ToInt32(invoiceServiceID.Value);
+            _invoice.ClientId = Convert.ToInt32(invoiceClientID.Value);
+            _invoice.Amount = invoiceAmount.Value;
+            _invoice.IssueDate = DateOnly.FromDateTime(invoiceIssueDate.Value);
+            _invoice.DueDate = DateOnly.FromDateTime(invoiceDueDate.Value);
+            return true;
+        }
+    }
 }
