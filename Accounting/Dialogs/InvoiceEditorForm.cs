@@ -49,7 +49,7 @@ class InvoiceEditorForm : Form
             buttonsPanel.Controls.Add(deleteButton);
 
             saveButton.Text = "Сохранить";
-            // saveButton.Click += SendRequest;
+            saveButton.Click += SendRequest;
         }
         else
         {
