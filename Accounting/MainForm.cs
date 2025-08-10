@@ -212,6 +212,6 @@ public class MainForm : Form
     private void Filter(object? sender, EventArgs e)
     {
         var form = new FilterForm();
-        form.Show();
+        if (form.ShowDialog() == DialogResult.OK) return;
     }
 }
