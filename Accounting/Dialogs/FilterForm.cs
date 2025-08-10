@@ -1,3 +1,5 @@
+using Accounting.Dtos;
+
 namespace Accounting.Dialogs;
 
 public class FilterForm : Form
@@ -8,11 +10,13 @@ public class FilterForm : Form
     private TextBox clientTB = null!;
     private ComboBox statusCB = null!;
     private Size windowSize = new(650, 250);
-    public FilterForm()
+    DataGridView _invoices = null!;
+    public FilterForm(DataGridView invoices)
     {
         Text = "Фильтр";
         Size = windowSize;
         InitializeComponents();
+        _invoices = invoices;
     }
 
     private void InitializeComponents()
@@ -29,6 +33,7 @@ public class FilterForm : Form
         filterButton.Text = "Фильтровать";
         filterButton.Width = 100;
         filterButton.Anchor = AnchorStyles.None;
+        filterButton.Click += Filter;
 
         mainTable.Controls.Add(CreateFieldsTable());
         mainTable.Controls.Add(filterButton);
@@ -91,5 +96,41 @@ public class FilterForm : Form
         dateTimePicker.ShowCheckBox = true;
         dateTimePicker.Checked = false;
         return dateTimePicker;
+    }
+
+    private void Filter(object? sender, EventArgs e)
+    {
+        var currentInvoices = _invoices.Rows
+            .Cast<DataGridViewRow>()
+            .Where(r => r.DataBoundItem != null)
+            .Select(r => (InvoiceDto)r.DataBoundItem!)
+            .ToList();
+
+        if (issueDateDTP.Checked)
+        {
+            var issueDate = DateOnly.FromDateTime(issueDateDTP.Value);
+            currentInvoices = currentInvoices
+                .Where(inv => inv.IssueDate == issueDate)
+                .ToList();
+        }
+
+        if (paymentDateDTP.Checked)
+        {
+            var paymentDate = DateOnly.FromDateTime(paymentDateDTP.Value);
+            currentInvoices = currentInvoices
+                .Where(inv => inv.PaymentDate.HasValue && inv.PaymentDate.Value == paymentDate)
+                .ToList();
+        }
+
+        var statusFilter = statusCB.SelectedItem as string;
+        if (!string.IsNullOrEmpty(statusFilter))
+        {
+            currentInvoices = currentInvoices
+                .Where(inv => inv.Status == statusFilter)
+                .ToList();
+        }
+
+        _invoices.DataSource = null;
+        _invoices.DataSource = currentInvoices;
     }
 }
