@@ -209,7 +209,7 @@ public class MainForm : Form
 
     private void Filter(object? sender, EventArgs e)
     {
-        var form = new FilterForm(invoicesDataGrid);
+        var form = new FilterForm(invoicesDataGrid, servicesDataGrid, clientsDataGrid);
         if (form.ShowDialog() == DialogResult.OK) return;
     }
 }

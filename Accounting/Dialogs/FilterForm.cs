@@ -10,13 +10,17 @@ public class FilterForm : Form
     private TextBox clientTB = null!;
     private ComboBox statusCB = null!;
     private Size windowSize = new(650, 250);
-    DataGridView _invoices = null!;
-    public FilterForm(DataGridView invoices)
+    DataGridView _invoicesDG = null!;
+    DataGridView _clientsDG = null!;
+    DataGridView _servicesDG = null!;
+    public FilterForm(DataGridView invoices, DataGridView services, DataGridView clients)
     {
         Text = "Фильтр";
         Size = windowSize;
         InitializeComponents();
-        _invoices = invoices;
+        _invoicesDG = invoices;
+        _servicesDG = services;
+        _clientsDG = clients;
     }
 
     private void InitializeComponents()
@@ -100,7 +104,7 @@ public class FilterForm : Form
 
     private void Filter(object? sender, EventArgs e)
     {
-        var currentInvoices = _invoices.Rows
+        var currentInvoices = _invoicesDG.Rows
             .Cast<DataGridViewRow>()
             .Where(r => r.DataBoundItem != null)
             .Select(r => (InvoiceDto)r.DataBoundItem!)
@@ -122,6 +126,47 @@ public class FilterForm : Form
                 .ToList();
         }
 
+        string serviceFilter = serviceTB.Text.Trim();
+        List<int> matchedServiceIds = new List<int>();
+        if (!string.IsNullOrEmpty(serviceFilter))
+        {
+            matchedServiceIds = _servicesDG.Rows
+                .Cast<DataGridViewRow>()
+                .Where(r => r.DataBoundItem != null)
+                .Select(r => (ServiceDto)r.DataBoundItem!)
+                .Where(c => c.Name.Contains(serviceFilter, StringComparison.OrdinalIgnoreCase))
+                .Select(c => c.Id)
+                .ToList();
+        }
+        if (matchedServiceIds.Any())
+        {
+            currentInvoices = currentInvoices
+                .Where(inv => matchedServiceIds.Contains(inv.ClientId))
+                .ToList();
+        }
+
+        string clientFilter = clientTB.Text.Trim();
+        List<int> matchedClientIds = new List<int>();
+        if (!string.IsNullOrEmpty(clientFilter))
+        {
+            matchedClientIds = _clientsDG.Rows
+                .Cast<DataGridViewRow>()
+                .Where(r => r.DataBoundItem != null)
+                .Select(r => (ClientDto)r.DataBoundItem!)
+                .Where(c =>
+                c.FullName.Contains(clientFilter, StringComparison.OrdinalIgnoreCase)
+                || c.Login.Contains(clientFilter, StringComparison.OrdinalIgnoreCase)
+                )
+                .Select(c => c.Id)
+                .ToList();
+        }
+        if (matchedClientIds.Any())
+        {
+            currentInvoices = currentInvoices
+                .Where(inv => matchedClientIds.Contains(inv.ClientId))
+                .ToList();
+        }
+
         var statusFilter = statusCB.SelectedItem as string;
         if (!string.IsNullOrEmpty(statusFilter))
         {
@@ -130,7 +175,9 @@ public class FilterForm : Form
                 .ToList();
         }
 
-        _invoices.DataSource = null;
-        _invoices.DataSource = currentInvoices;
+        _invoicesDG.DataSource = null;
+        _invoicesDG.DataSource = currentInvoices;
+        DialogResult = DialogResult.OK;
+        Close();
     }
 }
