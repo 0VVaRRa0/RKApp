@@ -97,6 +97,7 @@ public class MainForm : Form
         {
             invoicesDataGrid = dataGrid;
             invoicesDataGrid.CellDoubleClick += EditInvoice;
+            invoicesDataGrid.CellFormatting += CheckInvoicesDates;
         }
         ;
         return dataGrid;
@@ -211,5 +212,31 @@ public class MainForm : Form
     {
         var form = new FilterForm(invoicesDataGrid, servicesDataGrid, clientsDataGrid);
         if (form.ShowDialog() == DialogResult.OK) return;
+    }
+
+    private void CheckInvoicesDates(object? sender, DataGridViewCellFormattingEventArgs e)
+    {
+        if (invoicesDataGrid.Rows[e.RowIndex].DataBoundItem is InvoiceDto invoice)
+        {
+            bool isOverdue = false;
+
+            if (invoice.PaymentDate.HasValue)
+            {
+                isOverdue = invoice.PaymentDate.Value > invoice.DueDate;
+            }
+            else
+            {
+                isOverdue = DateOnly.FromDateTime(DateTime.Today) > invoice.DueDate;
+            }
+
+            if (isOverdue)
+            {
+                invoicesDataGrid.Rows[e.RowIndex].DefaultCellStyle.BackColor = Color.LightCoral;
+            }
+            else
+            {
+                invoicesDataGrid.Rows[e.RowIndex].DefaultCellStyle.BackColor = Color.White;
+            }
+        }
     }
 }
