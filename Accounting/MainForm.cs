@@ -16,8 +16,6 @@ public class MainForm : Form
     private DataGridView servicesDataGrid = null!;
     private DataGridView clientsDataGrid = null!;
     private DataGridView invoicesDataGrid = null!;
-    private HashSet<string> refreshedTabs = new();
-
     public MainForm()
     {
         Text = "Р&К Бухгалтерия";
