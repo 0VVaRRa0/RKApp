@@ -128,6 +128,7 @@ class InvoiceEditorForm : Form
             invoiceIssueDate.MinDate = _invoice.IssueDate.ToDateTime(TimeOnly.MaxValue);
             invoiceIssueDate.Value = _invoice.IssueDate.ToDateTime(TimeOnly.MaxValue);
         }
+        invoiceIssueDate.ValueChanged += ChangeMinDueDate;
 
         invoiceDueDate = new();
         invoiceDueDate.Format = DateTimePickerFormat.Short;
@@ -175,6 +176,11 @@ class InvoiceEditorForm : Form
         label.AutoSize = true;
         label.Anchor = AnchorStyles.Right;
         return label;
+    }
+
+    private void ChangeMinDueDate(object? sender, EventArgs e)
+    {
+        invoiceDueDate.MinDate = invoiceIssueDate.Value;
     }
 
     private async void SendRequest(object? sender, EventArgs e)
