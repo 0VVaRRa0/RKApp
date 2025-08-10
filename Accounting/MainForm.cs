@@ -24,7 +24,7 @@ public class MainForm : Form
         MinimumSize = windowSize;
         MaximumSize = windowSize;
         InitializeTabs();
-        Shown += RefreshPage;
+        Shown += GetAllData;
     }
 
     public void InitializeTabs()
@@ -35,7 +35,6 @@ public class MainForm : Form
         tabControl.Controls.Add(CreateTabPage(servicesStr));
         tabControl.Controls.Add(CreateTabPage(clientsStr));
         tabControl.Controls.Add(CreateTabPage(invoicesStr));
-        tabControl.SelectedIndexChanged += TabControlSelectedPageChanged;
 
         Controls.Add(tabControl);
     }
@@ -99,47 +98,33 @@ public class MainForm : Form
         {
             invoicesDataGrid = dataGrid;
             invoicesDataGrid.CellDoubleClick += EditInvoice;
-        };
+        }
+        ;
         return dataGrid;
     }
 
     private void RefreshPage(object? sender, EventArgs e)
     {
         string tabName = tabControl.SelectedTab!.Text;
-        if (tabName == servicesStr) GetData();
-        else if (tabName == clientsStr) GetData();
-        else if (tabName == invoicesStr) GetData();
+        if (tabName == servicesStr || tabName == clientsStr || tabName == invoicesStr)
+            GetData(tabName);
     }
 
-    private void TabControlSelectedPageChanged(object? sender, EventArgs e)
+    private async void GetData(string tabName)
     {
-        string tabName = tabControl.SelectedTab!.Text;
-
-        if (!refreshedTabs.Contains(tabName))
-        {
-            RefreshPage(null, EventArgs.Empty);
-            refreshedTabs.Add(tabName);
-        }
-    }
-
-
-    private void CreateObject(object? sender, EventArgs e)
-    {
-        if (tabControl.SelectedTab!.Text == servicesStr) CreateService(null, EventArgs.Empty);
-        else if (tabControl.SelectedTab!.Text == clientsStr) CreateClient(null, EventArgs.Empty);
-        else if (tabControl.SelectedTab!.Text == invoicesStr) CreateInvoice(null, EventArgs.Empty);
-    }
-
-    private async void GetData()
-    {
-        string tab = tabControl.SelectedTab!.Text;
-
-        if (tab == servicesStr)
+        if (tabName == servicesStr)
             await SendRequest<ServiceDto>("api/services", servicesDataGrid);
-        else if (tab == clientsStr)
+        else if (tabName == clientsStr)
             await SendRequest<ClientDto>("api/clients", clientsDataGrid);
-        else if (tab == invoicesStr)
+        else if (tabName == invoicesStr)
             await SendRequest<InvoiceDto>("api/invoices", invoicesDataGrid);
+    }
+
+    private async void GetAllData(object? sender, EventArgs e)
+    {
+        await SendRequest<ServiceDto>("api/services", servicesDataGrid);
+        await SendRequest<ClientDto>("api/clients", clientsDataGrid);
+        await SendRequest<InvoiceDto>("api/invoices", invoicesDataGrid);
     }
 
     private async Task SendRequest<T>(string apiEndpoint, DataGridView grid)
@@ -148,14 +133,19 @@ public class MainForm : Form
         {
             var response = await httpClient.GetAsync($"{apiUrl}/{apiEndpoint}");
             response.EnsureSuccessStatusCode();
-            var data = await response.Content.ReadFromJsonAsync<List<T>>() ?? new List<T>();
-            grid.DataSource = data;
-            grid.Columns["Id"]!.Width = 50;
+            grid.DataSource = await response.Content.ReadFromJsonAsync<List<T>>() ?? new List<T>();
         }
         catch (Exception ex)
         {
             MessageBox.Show($"Ошибка при загрузке данных: {ex.Message}");
         }
+    }
+
+    private void CreateObject(object? sender, EventArgs e)
+    {
+        if (tabControl.SelectedTab!.Text == servicesStr) CreateService(null, EventArgs.Empty);
+        else if (tabControl.SelectedTab!.Text == clientsStr) CreateClient(null, EventArgs.Empty);
+        else if (tabControl.SelectedTab!.Text == invoicesStr) CreateInvoice(null, EventArgs.Empty);
     }
 
     private void CreateService(object? sender, EventArgs e)
