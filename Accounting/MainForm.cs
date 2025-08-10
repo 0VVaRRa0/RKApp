@@ -190,7 +190,7 @@ public class MainForm : Form
 
     private void CreateInvoice(object? sender, EventArgs e)
     {
-        InvoiceEditorForm form = new(null);
+        InvoiceEditorForm form = new(servicesDataGrid, clientsDataGrid, null);
         if (form.ShowDialog() == DialogResult.OK)
         {
             RefreshPage(null, EventArgs.Empty);
@@ -201,7 +201,7 @@ public class MainForm : Form
     {
         var row = invoicesDataGrid.SelectedRows[0];
         var invoice = row.DataBoundItem as InvoiceDto;
-        InvoiceEditorForm form = new(invoice);
+        InvoiceEditorForm form = new(servicesDataGrid, clientsDataGrid, invoice);
         if (form.ShowDialog() == DialogResult.OK)
         {
             RefreshPage(null, EventArgs.Empty);

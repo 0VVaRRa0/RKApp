@@ -9,19 +9,23 @@ class InvoiceEditorForm : Form
     private readonly string apiUrl = "https://81951d3b8c90.ngrok-free.app";
     private Size windowSize = new(683, 384);
     private readonly InvoiceDto _invoice = null!;
-    private NumericUpDown invoiceServiceID = null!;
-    private NumericUpDown invoiceClientID = null!;
+    private readonly DataGridView _servicesDataGrid = null!;
+    private readonly DataGridView _clientsDataGrid = null!;
     private NumericUpDown invoiceAmount = null!;
     private DateTimePicker invoiceIssueDate = null!;
     private DateTimePicker invoiceDueDate = null!;
+    private ComboBox servicesComboBox = null!;
+    private ComboBox clientsComboBox = null!;
     private Label invoicePaymentDate = null!;
     private Label invoiceStatus = null!;
-    public InvoiceEditorForm(InvoiceDto? invoice = null)
+    public InvoiceEditorForm(DataGridView servicesDataGrid, DataGridView clientsDataGrid, InvoiceDto? invoice = null)
     {
         Text = "Счёт";
         MinimumSize = windowSize;
         MaximumSize = windowSize;
         _invoice = invoice ?? new InvoiceDto { Status = "NOT PAID" };
+        _servicesDataGrid = servicesDataGrid;
+        _clientsDataGrid = clientsDataGrid;
         InitializeComponents();
     }
 
@@ -63,15 +67,33 @@ class InvoiceEditorForm : Form
         invoiceTable.RowCount = 8;
         invoiceTable.CellBorderStyle = TableLayoutPanelCellBorderStyle.Single;
 
-        invoiceServiceID = new();
-        invoiceServiceID.Minimum = 0;
-        invoiceServiceID.Increment = 1;
-        if (_invoice.Id != 0) invoiceServiceID.Value = _invoice.ServiceId;
+        var serviceDtos = _servicesDataGrid.Rows
+            .Cast<DataGridViewRow>()
+            .Where(r => r.DataBoundItem != null)
+            .Select(r => (ServiceDto)r.DataBoundItem!)
+            .ToList();
 
-        invoiceClientID = new();
-        invoiceClientID.Minimum = 0;
-        invoiceClientID.Increment = 1;
-        if (_invoice.Id != 0) invoiceClientID.Value = _invoice.ClientId;
+        servicesComboBox = new();
+        servicesComboBox.DisplayMember = "DisplayName";
+        servicesComboBox.ValueMember = "Id";
+        servicesComboBox.DataSource = serviceDtos;
+        servicesComboBox.AutoCompleteSource = AutoCompleteSource.ListItems;
+        servicesComboBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
+        servicesComboBox.Width = 400;
+
+        var clientDtos = _clientsDataGrid.Rows
+            .Cast<DataGridViewRow>()
+            .Where(r => r.DataBoundItem != null)
+            .Select(r => (ClientDto)r.DataBoundItem!)
+            .ToList();
+
+        clientsComboBox = new();
+        clientsComboBox.DisplayMember = "DisplayName";
+        clientsComboBox.ValueMember = "Id";
+        clientsComboBox.DataSource = clientDtos;
+        clientsComboBox.AutoCompleteSource = AutoCompleteSource.ListItems;
+        clientsComboBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
+        clientsComboBox.Width = 400;
 
         invoiceAmount = new();
         invoiceAmount.Minimum = 0;
@@ -106,16 +128,16 @@ class InvoiceEditorForm : Form
         if (_invoice.Status == "NOT PAID") invoiceStatus.Text = "NOT PAID";
         else invoiceStatus.Text = "PAID";
 
-        invoiceTable.Controls.Add(invoiceServiceID, 1, 0);
-        invoiceTable.Controls.Add(invoiceClientID, 1, 1);
+        invoiceTable.Controls.Add(servicesComboBox, 1, 0);
+        invoiceTable.Controls.Add(clientsComboBox, 1, 1);
         invoiceTable.Controls.Add(invoiceAmount, 1, 2);
         invoiceTable.Controls.Add(invoiceIssueDate, 1, 3);
         invoiceTable.Controls.Add(invoiceDueDate, 1, 4);
         invoiceTable.Controls.Add(invoicePaymentDate, 1, 5);
         invoiceTable.Controls.Add(invoiceStatus, 1, 6);
 
-        invoiceTable.Controls.Add(CreateLabel("ID Услуги:"), 0, 0);
-        invoiceTable.Controls.Add(CreateLabel("ID Клиента:"), 0, 1);
+        invoiceTable.Controls.Add(CreateLabel("Услуга:"), 0, 0);
+        invoiceTable.Controls.Add(CreateLabel("Клиент:"), 0, 1);
         invoiceTable.Controls.Add(CreateLabel("Сумма:"), 0, 2);
         invoiceTable.Controls.Add(CreateLabel("Дата выставления:"), 0, 3);
         invoiceTable.Controls.Add(CreateLabel("Оплатить до:"), 0, 4);
@@ -134,15 +156,6 @@ class InvoiceEditorForm : Form
         label.AutoSize = true;
         label.Anchor = AnchorStyles.Right;
         return label;
-    }
-
-    private TextBox CreateTextBox(string text)
-    {
-        TextBox textBox = new();
-        textBox.Text = text;
-        textBox.Width = 400;
-        textBox.Anchor = AnchorStyles.Left;
-        return textBox;
     }
 
     private async void SendRequest(object? sender, EventArgs e)
@@ -176,15 +189,20 @@ class InvoiceEditorForm : Form
             Close();
         }
         else if (response is null) MessageBox.Show("Неизвестная кнопка", "Ошибка⚠️");
-        else if (!response.IsSuccessStatusCode) MessageBox.Show("Не удалось отправить запрос🔌", "Ошибка⚠️");
+        else if (!response.IsSuccessStatusCode)
+            MessageBox.Show(
+                $"Не удалось отправить запрос: {await response.Content.ReadAsStringAsync()}", "Ошибка⚠️"
+            );
     }
 
     private bool CheckFields()
     {
+        var selectedServiceId = servicesComboBox.SelectedValue;
+        var selectedClientId = clientsComboBox.SelectedValue;
         if (
-            invoiceServiceID.Value == 0
-            || invoiceClientID.Value == 0
-            || invoiceAmount.Value == 0
+            invoiceAmount.Value == 0
+            || selectedServiceId == null
+            || selectedClientId == null
         )
         {
             MessageBox.Show("Заполните все поля!", "Ошибка⚠️");
@@ -192,8 +210,8 @@ class InvoiceEditorForm : Form
         }
         else
         {
-            _invoice.ServiceId = Convert.ToInt32(invoiceServiceID.Value);
-            _invoice.ClientId = Convert.ToInt32(invoiceClientID.Value);
+            _invoice.ServiceId = (int)selectedServiceId;
+            _invoice.ClientId = (int)selectedClientId;
             _invoice.Amount = invoiceAmount.Value;
             _invoice.IssueDate = DateOnly.FromDateTime(invoiceIssueDate.Value);
             _invoice.DueDate = DateOnly.FromDateTime(invoiceDueDate.Value);
