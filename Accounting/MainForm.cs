@@ -39,14 +39,14 @@ public class MainForm : Form
         Controls.Add(tabControl);
     }
 
-    private TabPage CreateTabPage(string title)
+    private TabPage CreateTabPage(string tabTitle)
     {
-        TabPage page = new(title);
-        page.Controls.Add(CreateTable(title));
+        TabPage page = new(tabTitle);
+        page.Controls.Add(CreateTable(tabTitle));
         return page;
     }
 
-    private TableLayoutPanel CreateTable(string title)
+    private TableLayoutPanel CreateTable(string tabTitle)
     {
         TableLayoutPanel table = new();
         table.ColumnCount = 1;
@@ -54,17 +54,18 @@ public class MainForm : Form
         table.Dock = DockStyle.Fill;
         table.RowStyles.Add(new RowStyle(SizeType.Absolute, 35));
         table.CellBorderStyle = TableLayoutPanelCellBorderStyle.Single;
-        table.Controls.Add(CreateButtonsPanel(), 0, 0);
-        table.Controls.Add(CreateDataGrid(title), 0, 1);
+        table.Controls.Add(CreateButtonsPanel(tabTitle), 0, 0);
+        table.Controls.Add(CreateDataGrid(tabTitle), 0, 1);
         return table;
     }
 
-    private FlowLayoutPanel CreateButtonsPanel()
+    private FlowLayoutPanel CreateButtonsPanel(string tabTitle)
     {
         FlowLayoutPanel panel = new();
         panel.Dock = DockStyle.Fill;
         panel.Controls.Add(CreateButton("Обновить", RefreshPage));
         panel.Controls.Add(CreateButton("Добавить", CreateObject));
+        if (tabTitle == invoicesStr) panel.Controls.Add(CreateButton("Фильтр", Filter));
         return panel;
     }
 
@@ -206,5 +207,11 @@ public class MainForm : Form
         {
             RefreshPage(null, EventArgs.Empty);
         }
+    }
+
+    private void Filter(object? sender, EventArgs e)
+    {
+        var form = new FilterForm();
+        form.Show();
     }
 }
