@@ -16,6 +16,7 @@ public class MainForm : Form
     private DataGridView servicesDataGrid = null!;
     private DataGridView clientsDataGrid = null!;
     private DataGridView invoicesDataGrid = null!;
+    private HashSet<string> refreshedTabs = new();
 
     public MainForm()
     {
@@ -34,6 +35,7 @@ public class MainForm : Form
         tabControl.Controls.Add(CreateTabPage(servicesStr));
         tabControl.Controls.Add(CreateTabPage(clientsStr));
         tabControl.Controls.Add(CreateTabPage(invoicesStr));
+        tabControl.SelectedIndexChanged += TabControlSelectedPageChanged;
 
         Controls.Add(tabControl);
     }
@@ -103,10 +105,23 @@ public class MainForm : Form
 
     private void RefreshPage(object? sender, EventArgs e)
     {
-        if (tabControl.SelectedTab!.Text == servicesStr) GetData();
-        else if (tabControl.SelectedTab!.Text == clientsStr) GetData();
-        else if (tabControl.SelectedTab!.Text == invoicesStr) GetData();
+        string tabName = tabControl.SelectedTab!.Text;
+        if (tabName == servicesStr) GetData();
+        else if (tabName == clientsStr) GetData();
+        else if (tabName == invoicesStr) GetData();
     }
+
+    private void TabControlSelectedPageChanged(object? sender, EventArgs e)
+    {
+        string tabName = tabControl.SelectedTab!.Text;
+
+        if (!refreshedTabs.Contains(tabName))
+        {
+            RefreshPage(null, EventArgs.Empty);
+            refreshedTabs.Add(tabName);
+        }
+    }
+
 
     private void CreateObject(object? sender, EventArgs e)
     {
