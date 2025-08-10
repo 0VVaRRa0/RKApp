@@ -73,10 +73,18 @@ class InvoiceEditorForm : Form
             .Select(r => (ServiceDto)r.DataBoundItem!)
             .ToList();
 
+        var detailsServiceDtos = serviceDtos
+            .Select(s => new ServiceDetailDto
+            {
+                Id = s.Id,
+                Name = s.Name
+            })
+            .ToList();
+
         servicesComboBox = new();
         servicesComboBox.DisplayMember = "DisplayName";
         servicesComboBox.ValueMember = "Id";
-        servicesComboBox.DataSource = serviceDtos;
+        servicesComboBox.DataSource = detailsServiceDtos;
         servicesComboBox.AutoCompleteSource = AutoCompleteSource.ListItems;
         servicesComboBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
         servicesComboBox.Width = 400;
@@ -87,10 +95,21 @@ class InvoiceEditorForm : Form
             .Select(r => (ClientDto)r.DataBoundItem!)
             .ToList();
 
+        var detailsClientDtos = clientDtos
+            .Select(s => new ClientDetailDto
+            {
+                Id = s.Id,
+                Login = s.Login,
+                FullName = s.FullName,
+                Email = s.Email,
+                PhoneNumber = s.PhoneNumber
+            })
+            .ToList();
+
         clientsComboBox = new();
         clientsComboBox.DisplayMember = "DisplayName";
         clientsComboBox.ValueMember = "Id";
-        clientsComboBox.DataSource = clientDtos;
+        clientsComboBox.DataSource = detailsClientDtos;
         clientsComboBox.AutoCompleteSource = AutoCompleteSource.ListItems;
         clientsComboBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
         clientsComboBox.Width = 400;
