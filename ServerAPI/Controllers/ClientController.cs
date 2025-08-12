@@ -49,6 +49,21 @@ namespace ServerAPI.Controllers
             };
             return Ok(dto);
         }
+        [HttpGet("login/{login}")]
+        public IActionResult GetClientByLogin(string login)
+        {
+            var client = _context.Clients.SingleOrDefault(c => c.Login == login);
+            if (client == null) return NotFound();
+            var dto = new ClientDto
+            {
+                Id = client.Id,
+                Login = client.Login,
+                FullName = client.FullName,
+                Email = client.Email,
+                PhoneNumber = client.PhoneNumber
+            };
+            return Ok(dto);
+        }
         [HttpPost]
         public IActionResult CreateClient(ClientDto dto)
         {
