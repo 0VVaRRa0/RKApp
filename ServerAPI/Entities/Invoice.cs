@@ -13,11 +13,11 @@ public partial class Invoice
 
     public decimal Amount { get; set; }
 
-    public DateOnly IssueDate { get; set; }
+    public DateTime IssueDate { get; set; }
 
-    public DateOnly DueDate { get; set; }
+    public DateTime DueDate { get; set; }
 
-    public DateOnly? PaymentDate { get; set; }
+    public DateTime? PaymentDate { get; set; }
 
     public string? ReceiptNumber { get; set; }
 
