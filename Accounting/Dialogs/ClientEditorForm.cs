@@ -6,7 +6,7 @@ namespace Accounting.Dialogs;
 class ClientEditorForm : Form
 {
     private readonly HttpClient httpClient = new();
-    private readonly string apiUrl = "https://81951d3b8c90.ngrok-free.app";
+    private readonly string apiUrl = "http://localhost:8000";
     private Size windowSize = new(683, 384);
     private readonly ClientDto _client = null!;
     TextBox clientLoginTB = null!;

@@ -112,17 +112,17 @@ public class FilterForm : Form
 
         if (issueDateDTP.Checked)
         {
-            var issueDate = DateOnly.FromDateTime(issueDateDTP.Value);
+            var issueDate = issueDateDTP.Value.Date;
             currentInvoices = currentInvoices
-                .Where(inv => inv.IssueDate == issueDate)
+                .Where(inv => inv.IssueDate.Date == issueDate)
                 .ToList();
         }
 
         if (paymentDateDTP.Checked)
         {
-            var paymentDate = DateOnly.FromDateTime(paymentDateDTP.Value);
+            var paymentDate = paymentDateDTP.Value.Date;
             currentInvoices = currentInvoices
-                .Where(inv => inv.PaymentDate.HasValue && inv.PaymentDate.Value == paymentDate)
+                .Where(inv => inv.PaymentDate.HasValue && inv.PaymentDate.Value.Date == paymentDate)
                 .ToList();
         }
 

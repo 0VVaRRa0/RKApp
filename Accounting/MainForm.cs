@@ -7,7 +7,7 @@ namespace Accounting;
 public class MainForm : Form
 {
     private readonly HttpClient httpClient = new();
-    private readonly string apiUrl = "https://81951d3b8c90.ngrok-free.app";
+    private readonly string apiUrl = "http://localhost:8000";
     private Size windowSize = new(1366, 768);
     TabControl tabControl = null!;
     private readonly string servicesStr = "Услуги";
@@ -226,7 +226,7 @@ public class MainForm : Form
             }
             else
             {
-                isOverdue = DateOnly.FromDateTime(DateTime.Today) > invoice.DueDate;
+                isOverdue = DateTime.Today > invoice.DueDate;
             }
 
             if (isOverdue)

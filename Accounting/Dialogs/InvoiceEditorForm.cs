@@ -6,7 +6,7 @@ namespace Accounting.Dialogs;
 class InvoiceEditorForm : Form
 {
     private readonly HttpClient httpClient = new();
-    private readonly string apiUrl = "https://81951d3b8c90.ngrok-free.app";
+    private readonly string apiUrl = "http://localhost:8000";
     private Size windowSize = new(683, 384);
     private readonly InvoiceDto _invoice = null!;
     private readonly DataGridView _servicesDataGrid = null!;
@@ -125,8 +125,8 @@ class InvoiceEditorForm : Form
         invoiceIssueDate.MinDate = DateTime.Today;
         if (_invoice.Id != 0)
         {
-            invoiceIssueDate.MinDate = _invoice.IssueDate.ToDateTime(TimeOnly.MaxValue);
-            invoiceIssueDate.Value = _invoice.IssueDate.ToDateTime(TimeOnly.MaxValue);
+            invoiceIssueDate.MinDate = _invoice.IssueDate;
+            invoiceIssueDate.Value = _invoice.IssueDate;
         }
         invoiceIssueDate.ValueChanged += ChangeMinDueDate;
 
@@ -136,8 +136,8 @@ class InvoiceEditorForm : Form
         invoiceDueDate.MinDate = DateTime.Today;
         if (_invoice.Id != 0)
         {
-            invoiceDueDate.MinDate = _invoice.IssueDate.ToDateTime(TimeOnly.MaxValue);
-            invoiceDueDate.Value = _invoice.DueDate.ToDateTime(TimeOnly.MaxValue);
+            invoiceDueDate.MinDate = _invoice.IssueDate;
+            invoiceDueDate.Value = _invoice.DueDate;
         }
 
         invoicePaymentDate = new();
@@ -238,8 +238,8 @@ class InvoiceEditorForm : Form
             _invoice.ServiceId = (int)selectedServiceId;
             _invoice.ClientId = (int)selectedClientId;
             _invoice.Amount = invoiceAmount.Value;
-            _invoice.IssueDate = DateOnly.FromDateTime(invoiceIssueDate.Value);
-            _invoice.DueDate = DateOnly.FromDateTime(invoiceDueDate.Value);
+            _invoice.IssueDate = invoiceIssueDate.Value;
+            _invoice.DueDate = invoiceDueDate.Value;
             return true;
         }
     }
