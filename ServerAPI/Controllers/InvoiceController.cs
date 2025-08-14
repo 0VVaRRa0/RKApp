@@ -45,7 +45,9 @@ namespace ServerAPI.Controllers
                 {
                     Id = i.Id,
                     ServiceId = i.ServiceId,
+                    ServiceName = i.Service.Name,
                     ClientId = i.ClientId,
+                    ClientLogin = i.Client.Login,
                     Amount = i.Amount,
                     IssueDate = i.IssueDate,
                     DueDate = i.DueDate,
@@ -66,7 +68,9 @@ namespace ServerAPI.Controllers
             {
                 Id = invoice.Id,
                 ServiceId = invoice.ServiceId,
+                ServiceName = invoice.Service.Name,
                 ClientId = invoice.ClientId,
+                ClientLogin = invoice.Client.Login,
                 Amount = invoice.Amount,
                 IssueDate = invoice.IssueDate,
                 DueDate = invoice.DueDate,
