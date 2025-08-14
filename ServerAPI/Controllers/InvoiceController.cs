@@ -118,6 +118,7 @@ namespace ServerAPI.Controllers
             invoice.Amount = dto.Amount;
             invoice.IssueDate = dto.IssueDate;
             invoice.DueDate = dto.DueDate;
+            invoice.PaymentDate = dto.PaymentDate;
             invoice.ReceiptNumber = dto.ReceiptNumber;
             invoice.Status = dto.Status;
             _context.SaveChanges();
