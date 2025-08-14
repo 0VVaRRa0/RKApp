@@ -76,26 +76,6 @@ namespace ServerAPI.Controllers
             };
             return Ok(dto);
         }
-        [HttpGet("client_{id}")]
-        public IActionResult GetByClient(int id)
-        {
-            var invoices = _context.Invoices
-            .Where(inv => inv.ClientId == id)
-            .Select(inv => new InvoiceDto
-            {
-                Id = inv.Id,
-                ServiceId = inv.ServiceId,
-                ClientId = inv.ClientId,
-                Amount = inv.Amount,
-                IssueDate = inv.IssueDate,
-                DueDate = inv.DueDate,
-                PaymentDate = inv.PaymentDate,
-                ReceiptNumber = inv.ReceiptNumber,
-                Status = inv.Status
-            })
-            .ToList();
-            return Ok(invoices);
-        }
         [HttpPost]
         public IActionResult CreateInvoice(InvoiceDto dto)
         {

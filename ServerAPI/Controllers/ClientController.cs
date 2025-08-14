@@ -18,10 +18,17 @@ namespace ServerAPI.Controllers
             _context = context;
         }
         [HttpGet]
-        public IActionResult GetAllClients()
+        public IActionResult GetAllClients(
+            string? clientLogin = null
+        )
         {
-            var clients = _context.Clients
-            .Select(
+            var query = _context.Clients.AsQueryable();
+            var isClientLogin = string.IsNullOrEmpty(clientLogin);
+
+            if (!isClientLogin)
+                query = query.Where(c => c.Login == clientLogin);
+
+            var clients = query.Select(
                 c => new ClientDto
                 {
                     Id = c.Id,
@@ -30,9 +37,11 @@ namespace ServerAPI.Controllers
                     Email = c.Email,
                     PhoneNumber = c.PhoneNumber
                 }
-            )
-            .ToList();
-            return Ok(clients);
+            );
+            if (!isClientLogin)
+                return Ok(clients.FirstOrDefault());
+            else
+                return Ok(clients.ToList());
         }
         [HttpGet("{id}")]
         public IActionResult GetClientById(int id)
