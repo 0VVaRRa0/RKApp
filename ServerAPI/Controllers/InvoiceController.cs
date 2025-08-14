@@ -18,10 +18,29 @@ namespace ServerAPI.Controllers
             _context = context;
         }
         [HttpGet]
-        public IActionResult GetAllInvoices()
+        public IActionResult GetAllInvoices(
+            DateTime? issueDate = null,
+            DateTime? paymentDate = null,
+            int? serviceId = null,
+            int? clientId = null,
+            string? status = null)
         {
-            var invoices = _context.Invoices
-            .Select(
+            var query = _context.Invoices.AsQueryable();
+            if (issueDate.HasValue)
+                query = query.Where(i => i.IssueDate == issueDate.Value);
+
+            if (paymentDate.HasValue)
+                query = query.Where(i => i.PaymentDate == paymentDate.Value);
+
+            if (serviceId.HasValue)
+                query = query.Where(i => i.ServiceId == serviceId);
+                
+            if (clientId.HasValue)
+                query = query.Where(i => i.ClientId == clientId);
+
+            if (!string.IsNullOrEmpty(status))
+                query = query.Where(i => i.Status == status);
+            var invoices = query.Select(
                 i => new InvoiceDto
                 {
                     Id = i.Id,
