@@ -13,16 +13,12 @@ public class FilterForm : Form
     private ComboBox statusCB = null!;
     private Size windowSize = new(650, 250);
     DataGridView _invoicesDG = null!;
-    DataGridView _clientsDG = null!;
-    DataGridView _servicesDG = null!;
-    public FilterForm(DataGridView invoices, DataGridView services, DataGridView clients)
+    public FilterForm(DataGridView invoices)
     {
         Text = "Фильтр";
         Size = windowSize;
         InitializeComponents();
         _invoicesDG = invoices;
-        _servicesDG = services;
-        _clientsDG = clients;
     }
 
     private void InitializeComponents()

@@ -232,7 +232,7 @@ public class MainForm : Form
 
     private void Filter(object? sender, EventArgs e)
     {
-        var form = new FilterForm(invoicesDataGrid, servicesDataGrid, clientsDataGrid);
+        var form = new FilterForm(invoicesDataGrid);
         if (form.ShowDialog() == DialogResult.OK) return;
     }
 
