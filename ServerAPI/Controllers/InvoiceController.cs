@@ -22,7 +22,9 @@ namespace ServerAPI.Controllers
             DateTime? issueDate = null,
             DateTime? paymentDate = null,
             int? serviceId = null,
+            string? ServiceName = null,
             int? clientId = null,
+            string? clientLogin = null,
             string? status = null)
         {
             var query = _context.Invoices.AsQueryable();
@@ -34,6 +36,12 @@ namespace ServerAPI.Controllers
 
             if (serviceId.HasValue)
                 query = query.Where(i => i.ServiceId == serviceId);
+
+            if (!string.IsNullOrEmpty(ServiceName))
+                query = query.Where(i => i.Service.Name.Contains(ServiceName));
+                
+            if (!string.IsNullOrEmpty(clientLogin))
+                query = query.Where(i => i.Client.Login.Contains(clientLogin));
                 
             if (clientId.HasValue)
                 query = query.Where(i => i.ClientId == clientId);

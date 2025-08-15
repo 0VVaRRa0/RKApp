@@ -1,3 +1,5 @@
+using System.Net.Http.Json;
+using System.Threading.Tasks;
 using Accounting.Dtos;
 
 namespace Accounting.Dialogs;
@@ -104,80 +106,39 @@ public class FilterForm : Form
 
     private void Filter(object? sender, EventArgs e)
     {
-        var currentInvoices = _invoicesDG.Rows
-            .Cast<DataGridViewRow>()
-            .Where(r => r.DataBoundItem != null)
-            .Select(r => (InvoiceDto)r.DataBoundItem!)
-            .ToList();
+        List<string> queryParams = new();
 
         if (issueDateDTP.Checked)
-        {
-            var issueDate = issueDateDTP.Value.Date;
-            currentInvoices = currentInvoices
-                .Where(inv => inv.IssueDate.Date == issueDate)
-                .ToList();
-        }
+            queryParams.Add($"issueDate={issueDateDTP.Value.Date:yyyy-MM-dd}");
 
         if (paymentDateDTP.Checked)
-        {
-            var paymentDate = paymentDateDTP.Value.Date;
-            currentInvoices = currentInvoices
-                .Where(inv => inv.PaymentDate.HasValue && inv.PaymentDate.Value.Date == paymentDate)
-                .ToList();
-        }
+            queryParams.Add($"paymentDate={paymentDateDTP.Value.Date:yyyy-MM-dd}");
 
-        string serviceFilter = serviceTB.Text.Trim();
-        List<int> matchedServiceIds = new List<int>();
-        if (!string.IsNullOrEmpty(serviceFilter))
-        {
-            matchedServiceIds = _servicesDG.Rows
-                .Cast<DataGridViewRow>()
-                .Where(r => r.DataBoundItem != null)
-                .Select(r => (ServiceDto)r.DataBoundItem!)
-                .Where(c => c.Name.Contains(serviceFilter, StringComparison.OrdinalIgnoreCase))
-                .Select(c => c.Id)
-                .ToList();
-        }
-        if (matchedServiceIds.Any())
-        {
-            currentInvoices = currentInvoices
-                .Where(inv => matchedServiceIds.Contains(inv.ClientId))
-                .ToList();
-        }
+        string serviceName = serviceTB.Text.Trim();
+        if (!string.IsNullOrEmpty(serviceName))
+            queryParams.Add($"serviceName={Uri.EscapeDataString(serviceName)}");
 
-        string clientFilter = clientTB.Text.Trim();
-        List<int> matchedClientIds = new List<int>();
-        if (!string.IsNullOrEmpty(clientFilter))
-        {
-            matchedClientIds = _clientsDG.Rows
-                .Cast<DataGridViewRow>()
-                .Where(r => r.DataBoundItem != null)
-                .Select(r => (ClientDto)r.DataBoundItem!)
-                .Where(c =>
-                c.FullName.Contains(clientFilter, StringComparison.OrdinalIgnoreCase)
-                || c.Login.Contains(clientFilter, StringComparison.OrdinalIgnoreCase)
-                )
-                .Select(c => c.Id)
-                .ToList();
-        }
-        if (matchedClientIds.Any())
-        {
-            currentInvoices = currentInvoices
-                .Where(inv => matchedClientIds.Contains(inv.ClientId))
-                .ToList();
-        }
+        string clientLogin = clientTB.Text.Trim();
+        if (!string.IsNullOrEmpty(clientLogin))
+            queryParams.Add($"clientLogin={Uri.EscapeDataString(clientLogin)}");
 
-        var statusFilter = statusCB.SelectedItem as string;
-        if (!string.IsNullOrEmpty(statusFilter))
-        {
-            currentInvoices = currentInvoices
-                .Where(inv => inv.Status == statusFilter)
-                .ToList();
-        }
+        var status = statusCB.SelectedItem as string;
+        if (!string.IsNullOrEmpty(status))
+            queryParams.Add($"status={Uri.EscapeDataString(status)}");
+
+        string urlParams = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : "";
+
+        HttpClient httpClient = new();
+        var response = httpClient.GetAsync(
+            "http://localhost:8000/api/invoices" + urlParams).GetAwaiter().GetResult();
+
+        var invoices = response.Content.ReadFromJsonAsync<List<InvoiceDto>>().GetAwaiter().GetResult();
 
         _invoicesDG.DataSource = null;
-        _invoicesDG.DataSource = currentInvoices;
+        _invoicesDG.DataSource = invoices;
+
         DialogResult = DialogResult.OK;
         Close();
     }
+
 }
