@@ -91,11 +91,14 @@ namespace ServerAPI.Controllers
         [HttpPost]
         public IActionResult CreateInvoice(InvoiceDto dto)
         {
-            var clientExists = _context.Clients.Any(c => c.Id == dto.ClientId);
-            if (!clientExists) return BadRequest($"Client with Id={dto.ClientId} does not exist");
+            bool clientExists = _context.Clients.Any(c => c.Id == dto.ClientId);
+            if (!clientExists) return BadRequest($"Клиент с ID={dto.ClientId} не существует!");
 
-            var serviceExists = _context.Services.Any(s => s.Id == dto.ServiceId);
-            if (!serviceExists) return BadRequest($"Service with Id={dto.ServiceId} does not exist");
+            bool serviceExists = _context.Services.Any(s => s.Id == dto.ServiceId);
+            if (!serviceExists) return BadRequest($"Услуга с ID={dto.ServiceId} не существует!");
+
+            bool receiptNumberExists = _context.Invoices.Any(inv => inv.ReceiptNumber == dto.ReceiptNumber);
+            if (!receiptNumberExists) return BadRequest($"Счёт с номером квитанции: {dto.ReceiptNumber} уже существует!");
 
             var invoice = new Invoice
             {
@@ -116,11 +119,14 @@ namespace ServerAPI.Controllers
         [HttpPut("{id}")]
         public IActionResult UpdateInvoice(int id, InvoiceDto dto)
         {
-            var clientExists = _context.Clients.Any(c => c.Id == dto.ClientId);
-            if (!clientExists) return BadRequest($"Client with Id={dto.ClientId} does not exist");
+            bool clientExists = _context.Clients.Any(c => c.Id == dto.ClientId);
+            if (!clientExists) return BadRequest($"Клиент с ID={dto.ClientId} не существует!");
 
-            var serviceExists = _context.Services.Any(s => s.Id == dto.ServiceId);
-            if (!serviceExists) return BadRequest($"Service with Id={dto.ServiceId} does not exist");
+            bool serviceExists = _context.Services.Any(s => s.Id == dto.ServiceId);
+            if (!serviceExists) return BadRequest($"Услуга с ID={dto.ServiceId} не существует!");
+
+            bool receiptNumberExists = _context.Invoices.Any(inv => inv.ReceiptNumber == dto.ReceiptNumber && inv.Id != id);
+            if (!receiptNumberExists) return BadRequest($"Счёт с номером квитанции: {dto.ReceiptNumber} уже существует!");
 
             var invoice = _context.Invoices.Find(id);
             if (invoice == null) return NotFound();
