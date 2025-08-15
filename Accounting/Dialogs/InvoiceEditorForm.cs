@@ -88,7 +88,8 @@ class InvoiceEditorForm : Form
         servicesComboBox.AutoCompleteSource = AutoCompleteSource.ListItems;
         servicesComboBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
         servicesComboBox.Width = 400;
-
+        Shown += (s, e) => { servicesComboBox.SelectedValue = _invoice.ServiceId; };
+        
         var clientDtos = _clientsDataGrid.Rows
             .Cast<DataGridViewRow>()
             .Where(r => r.DataBoundItem != null)
@@ -113,11 +114,13 @@ class InvoiceEditorForm : Form
         clientsComboBox.AutoCompleteSource = AutoCompleteSource.ListItems;
         clientsComboBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
         clientsComboBox.Width = 400;
+        Shown += (s, e) => { clientsComboBox.SelectedValue = _invoice.ClientId; };
 
         invoiceAmount = new();
         invoiceAmount.Minimum = 0;
         invoiceAmount.Maximum = decimal.MaxValue;
         invoiceAmount.DecimalPlaces = 2;
+        invoiceAmount.Value = _invoice.Amount;
 
         invoiceIssueDate = new();
         invoiceIssueDate.Format = DateTimePickerFormat.Short;
