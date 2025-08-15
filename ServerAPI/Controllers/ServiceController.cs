@@ -37,6 +37,9 @@ namespace ServerAPI.Controllers
         [HttpPost]
         public IActionResult CreateService(ServiceDto dto)
         {
+            bool nameExists = _context.Services.Any(s => s.Name == dto.Name);
+            if (nameExists) return BadRequest("Услуга с таким названием уже существует!");
+
             var service = new Service
             {
                 Name = dto.Name
@@ -49,6 +52,9 @@ namespace ServerAPI.Controllers
         [HttpPut("{id}")]
         public IActionResult UpdateService(int id, ServiceDto dto)
         {
+            bool nameExists = _context.Services.Any(s => s.Name == dto.Name && s.Id != id);
+            if (nameExists) return BadRequest("Услуга с таким названием уже существует!");
+
             var service = _context.Services.Find(id);
             if (service == null) return NotFound();
             service.Name = dto.Name;
