@@ -1,0 +1,41 @@
+# Папки сборки
+bin/
+obj/
+Debug/
+Release/
+
+# Конфиги среды
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Кэш и логи
+*.log
+*.vspscc
+_TestResults/
+*.cache
+*.pdb
+
+# ASP.NET временные файлы
+App_Data/*
+App_Browsers/*
+App_Code/*
+App_WebReferences/*
+
+# NuGet
+packages/
+*.nupkg
+project.lock.json
+
+# Rider / VS Code
+.idea/
+.vscode/
+
+# Разное
+*.dbmdl
+*.jfm
+*.publish.xml
+/content
+/scripts
