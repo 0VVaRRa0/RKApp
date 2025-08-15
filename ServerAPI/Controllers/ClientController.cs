@@ -76,6 +76,12 @@ namespace ServerAPI.Controllers
         [HttpPost]
         public IActionResult CreateClient(ClientDto dto)
         {
+            bool loginExists = _context.Clients.Any(c => c.Login == dto.Login);
+            if (loginExists) return BadRequest("Клиент с таким логином уже существует!");
+
+            bool emailExists = _context.Clients.Any(c => c.Email == dto.Email);
+            if (emailExists) return BadRequest("Клиент с таким email уже существует!");
+
             var client = new Client
             {
                 Login = dto.Login,
@@ -83,12 +89,6 @@ namespace ServerAPI.Controllers
                 Email = dto.Email,
                 PhoneNumber = dto.PhoneNumber
             };
-
-            bool loginExists = _context.Clients.Any(c => c.Login == client.Login);
-            if (loginExists) return BadRequest("Клиент с таким логином уже существует!");
-
-            bool emailExists = _context.Clients.Any(c => c.Email == client.Email);
-            if (emailExists) return BadRequest("Клиент с таким email уже существует!");
 
             _context.Add(client);
             _context.SaveChanges();
@@ -98,12 +98,19 @@ namespace ServerAPI.Controllers
         [HttpPut("{id}")]
         public IActionResult UpdateClient(int id, ClientDto dto)
         {
+            bool loginExists = _context.Clients.Any(c => c.Login == dto.Login && c.Id != id);
+            if (loginExists) return BadRequest("Клиент с таким логином уже существует!");
+
+            bool emailExists = _context.Clients.Any(c => c.Email == dto.Email && c.Id != id);
+            if (emailExists) return BadRequest("Клиент с таким email уже существует!");
+
             var client = _context.Clients.Find(id);
             if (client == null) return NotFound();
             client.Login = dto.Login;
             client.FullName = dto.FullName;
             client.Email = dto.Email;
             client.PhoneNumber = dto.PhoneNumber;
+
             _context.SaveChanges();
             dto.Id = client.Id;
             return Ok(dto);
