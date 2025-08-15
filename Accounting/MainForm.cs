@@ -82,25 +82,47 @@ public class MainForm : Form
         dataGrid.Dock = DockStyle.Fill;
         dataGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         dataGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+        dataGrid.AutoGenerateColumns = false;
 
         if (title == servicesStr)
         {
             servicesDataGrid = dataGrid;
             servicesDataGrid.CellDoubleClick += EditService;
+            servicesDataGrid.Columns.Add(CreateDataGridColumns("Name", "Название услуги"));
         }
         else if (title == clientsStr)
         {
             clientsDataGrid = dataGrid;
             clientsDataGrid.CellDoubleClick += EditClient;
+            clientsDataGrid.Columns.Add(CreateDataGridColumns("Login", "Логин"));
+            clientsDataGrid.Columns.Add(CreateDataGridColumns("FullName", "Имя"));
+            clientsDataGrid.Columns.Add(CreateDataGridColumns("Email", "Email"));
+            clientsDataGrid.Columns.Add(CreateDataGridColumns("PhoneNumber", "Номер телефона"));
         }
         else if (title == invoicesStr)
         {
             invoicesDataGrid = dataGrid;
             invoicesDataGrid.CellDoubleClick += EditInvoice;
             invoicesDataGrid.CellFormatting += CheckInvoicesDates;
+            invoicesDataGrid.Columns.Add(CreateDataGridColumns("ServiceName", "Название услуги"));
+            invoicesDataGrid.Columns.Add(CreateDataGridColumns("ClientLogin", "Логин клиента"));
+            invoicesDataGrid.Columns.Add(CreateDataGridColumns("Amount", "Сумма"));
+            invoicesDataGrid.Columns.Add(CreateDataGridColumns("IssueDate", "Дата выставления"));
+            invoicesDataGrid.Columns.Add(CreateDataGridColumns("DueDate", "Оплатить до"));
+            invoicesDataGrid.Columns.Add(CreateDataGridColumns("PaymentDate", "Дата оплаты"));
+            invoicesDataGrid.Columns.Add(CreateDataGridColumns("ReceiptNumber", "Номер квитанции"));
+            invoicesDataGrid.Columns.Add(CreateDataGridColumns("Status", "Статус оплаты"));
         }
         ;
         return dataGrid;
+    }
+
+    private DataGridViewColumn CreateDataGridColumns(string name, string text)
+    {
+        DataGridViewTextBoxColumn Column = new();
+        Column.DataPropertyName = name;
+        Column.HeaderText = text;
+        return Column;
     }
 
     private void RefreshPage(object? sender, EventArgs e)
