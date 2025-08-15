@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.RegularExpressions;
 using Accounting.Dtos;
 
 namespace Accounting.Dialogs;
@@ -15,7 +16,7 @@ class ClientEditorForm : Form
     TextBox clientPhoneNumberTB = null!;
     public ClientEditorForm(ClientDto? client = null)
     {
-        Text = "Услуга";
+        Text = "Клиент";
         MinimumSize = windowSize;
         MaximumSize = windowSize;
         _client = client ?? new ClientDto();
@@ -128,20 +129,32 @@ class ClientEditorForm : Form
             DialogResult = DialogResult.OK;
             Close();
         }
+
         else if (response is null) MessageBox.Show("Неизвестная кнопка", "Ошибка⚠️");
-        else if (!response.IsSuccessStatusCode) MessageBox.Show("Не удалось отправить запрос🔌", "Ошибка⚠️");
+
+        else if (!response.IsSuccessStatusCode)
+        {
+            var error = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+            MessageBox.Show($"Ошибка: {error}", "Ошибка⚠️");
+        }
     }
 
     private bool CheckFields()
     {
+        var login = clientLoginTB.Text;
+        var fullName = clientFullNameTB.Text;
+        var email = clientEmailTB.Text;
+        var phoneNumber = clientPhoneNumberTB.Text;
         if (
-            clientLoginTB.Text == ""
-            || clientFullNameTB.Text == ""
-            || clientEmailTB.Text == ""
-            || clientPhoneNumberTB.Text == ""
+            string.IsNullOrEmpty(login)
+            || string.IsNullOrEmpty(fullName)
+            || string.IsNullOrEmpty(email)
+            || !Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+            || string.IsNullOrEmpty(phoneNumber)
+            || !Regex.IsMatch(phoneNumber, @"^\+\d{8,15}$")
         )
         {
-            MessageBox.Show("Заполните все поля!", "Ошибка⚠️");
+            MessageBox.Show("Заполните все поля правильно!", "Ошибка⚠️");
             return false;
         }
         else

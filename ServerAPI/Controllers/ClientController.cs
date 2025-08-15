@@ -83,6 +83,13 @@ namespace ServerAPI.Controllers
                 Email = dto.Email,
                 PhoneNumber = dto.PhoneNumber
             };
+
+            bool loginExists = _context.Clients.Any(c => c.Login == client.Login);
+            if (loginExists) return BadRequest("Клиент с таким логином уже существует!");
+
+            bool emailExists = _context.Clients.Any(c => c.Email == client.Email);
+            if (emailExists) return BadRequest("Клиент с таким email уже существует!");
+
             _context.Add(client);
             _context.SaveChanges();
             dto.Id = client.Id;
