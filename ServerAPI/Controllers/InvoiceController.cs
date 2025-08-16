@@ -8,6 +8,7 @@ using ServerAPI.Dtos;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.AspNetCore.SignalR;
 using ServerAPI.Hubs;
+using Microsoft.EntityFrameworkCore;
 
 namespace ServerAPI.Controllers
 {
@@ -88,7 +89,10 @@ namespace ServerAPI.Controllers
         [HttpGet("{id}")]
         public IActionResult GetInvoiceById(int id)
         {
-            var invoice = _context.Invoices.Find(id);
+            var invoice = _context.Invoices
+            .Include(i => i.Client)
+            .Include(i => i.Service)
+            .FirstOrDefault(i => i.Id == id);
             if (invoice == null) return NotFound();
             var dto = new InvoiceDto
             {
