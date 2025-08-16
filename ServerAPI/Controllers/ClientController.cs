@@ -27,7 +27,6 @@ namespace ServerAPI.Controllers
 
             if (!_cache.TryGetValue(cacheKey, out object? cachedClients))
             {
-                Console.WriteLine("ИЗ БД");
                 var query = _context.Clients.AsQueryable();
 
                 if (!string.IsNullOrEmpty(clientLogin))
@@ -50,7 +49,6 @@ namespace ServerAPI.Controllers
                 _cache.Set(cacheKey, clients, cacheOptions);
                 cachedClients = clients;
             }
-            else { Console.WriteLine("ИЗ КЭША"); }
 
             var result = cachedClients as List<ClientDto>;
 
