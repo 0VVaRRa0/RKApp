@@ -31,7 +31,9 @@ public class MainForm : Form
     {
         _signalRService = new SignalRService(
             $"{apiUrl}/notificationsHub",
-            () => Invoke(async () => await GetData(servicesStr))
+            onRefreshServices : () => Invoke(async () => await GetData(servicesStr)),
+            onRefreshClients : () => Invoke(async () => await GetData(clientsStr)),
+            onRefreshInvoices : () => Invoke(async () => await GetData(invoicesStr))
         );
     }
 

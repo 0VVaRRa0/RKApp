@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using ServerAPI.Entities;
 using ServerAPI.Dtos;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.AspNetCore.SignalR;
+using ServerAPI.Hubs;
 
 namespace ServerAPI.Controllers
 {
@@ -15,10 +17,12 @@ namespace ServerAPI.Controllers
     {
         private readonly RkappDbContext _context;
         private readonly IMemoryCache _cache;
-        public InvoiceController(RkappDbContext context, IMemoryCache cache)
+        private readonly IHubContext<NotificationsHub> _hub;
+        public InvoiceController(RkappDbContext context, IMemoryCache cache, IHubContext<NotificationsHub> hub)
         {
             _context = context;
             _cache = cache;
+            _hub = hub;
         }
         [HttpGet]
         public IActionResult GetAllInvoices(
@@ -129,6 +133,7 @@ namespace ServerAPI.Controllers
             dto.Id = invoice.Id;
             dto.PaymentDate = invoice.PaymentDate;
             _cache.Remove("AllInvoices");
+            _hub.Clients.All.SendAsync("RefreshInvoices");
             return CreatedAtAction(nameof(GetInvoiceById), new { Id = invoice.Id }, dto);
         }
         [HttpPut("{id}")]
@@ -156,6 +161,7 @@ namespace ServerAPI.Controllers
             _context.SaveChanges();
             dto.Id = invoice.Id;
             _cache.Remove("AllInvoices");
+            _hub.Clients.All.SendAsync("RefreshInvoices");
             return Ok(dto);
         }
         [HttpDelete("{id}")]
@@ -166,6 +172,7 @@ namespace ServerAPI.Controllers
             _context.Invoices.Remove(invoice);
             _context.SaveChanges();
             _cache.Remove("AllInvoices");
+            _hub.Clients.All.SendAsync("RefreshInvoices");
             return NoContent();
         }
     }
