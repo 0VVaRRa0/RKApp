@@ -6,6 +6,7 @@ namespace Accounting;
 
 public class MainForm : Form
 {
+    private SignalRService _signalRService= null!;
     private readonly HttpClient httpClient = new();
     private readonly string apiUrl = "http://localhost:8000";
     private Size windowSize = new(1366, 768);
@@ -21,8 +22,23 @@ public class MainForm : Form
         Text = "Р&К Бухгалтерия";
         MinimumSize = windowSize;
         MaximumSize = windowSize;
+        InitializeSignalR();
         InitializeTabs();
         Shown += GetAllData;
+    }
+
+    private void InitializeSignalR()
+    {
+        _signalRService = new SignalRService(
+            $"{apiUrl}/notificationsHub",
+            () => Invoke(async () => await GetData(servicesStr))
+        );
+    }
+
+    protected override async void OnShown(EventArgs e)
+    {
+        base.OnShown(e);
+        await _signalRService.StartAsync();
     }
 
     public void InitializeTabs()
@@ -125,14 +141,14 @@ public class MainForm : Form
         return Column;
     }
 
-    private void RefreshPage(object? sender, EventArgs e)
+    private async void RefreshPage(object? sender, EventArgs e)
     {
         string tabName = tabControl.SelectedTab!.Text;
         if (tabName == servicesStr || tabName == clientsStr || tabName == invoicesStr)
-            GetData(tabName);
+            await GetData(tabName);
     }
 
-    private async void GetData(string tabName)
+    private async Task GetData(string tabName)
     {
         if (tabName == servicesStr)
             await SendRequest<ServiceDto>("api/services", servicesDataGrid);

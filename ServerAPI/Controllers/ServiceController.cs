@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using ServerAPI.Dtos;
 using ServerAPI.Entities;
+using ServerAPI.Hubs;
 
 namespace ServerAPI.Controllers
 {
@@ -12,10 +14,12 @@ namespace ServerAPI.Controllers
     {
         private readonly RkappDbContext _context;
         private readonly IMemoryCache _cache;
-        public ServiceController(RkappDbContext context, IMemoryCache cache)
+        private readonly IHubContext<NotificationsHub> _hub;
+        public ServiceController(RkappDbContext context, IMemoryCache cache, IHubContext<NotificationsHub> hub)
         {
             _context = context;
             _cache = cache;
+            _hub = hub;
         }
         [HttpGet]
         public IActionResult GetAllServices()
@@ -63,6 +67,8 @@ namespace ServerAPI.Controllers
 
             _cache.Remove("AllServices");
 
+            _hub.Clients.All.SendAsync("RefreshServices");
+
             return CreatedAtAction(nameof(GetServiceById), new { id = dto.Id }, dto);
         }
         [HttpPut("{id}")]
@@ -79,6 +85,8 @@ namespace ServerAPI.Controllers
 
             _cache.Remove("AllServices");
 
+            _hub.Clients.All.SendAsync("RefreshServices");
+
             return Ok(dto);
         }
         [HttpDelete("{id}")]
@@ -90,6 +98,8 @@ namespace ServerAPI.Controllers
             _context.SaveChanges();
 
             _cache.Remove("AllServices");
+
+            _hub.Clients.All.SendAsync("RefreshServices");
             
             return NoContent();
         }
