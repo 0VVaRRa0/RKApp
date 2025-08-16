@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.SignalR.Client;
 
-public class SignalRService
+public class SignalR
 {
     private readonly HubConnection _connection;
 
-    public SignalRService(string hubUrl, Action onRefreshServices, Action onRefreshInvoices, Action onRefreshClients)
+    public SignalR(string hubUrl, Action onRefreshServices, Action onRefreshInvoices, Action onRefreshClients)
     {
         _connection = new HubConnectionBuilder()
             .WithUrl(hubUrl)
