@@ -37,5 +37,3 @@ project.lock.json
 *.dbmdl
 *.jfm
 *.publish.xml
-/content
-/scripts

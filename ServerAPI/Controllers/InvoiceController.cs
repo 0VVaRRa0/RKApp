@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 using ServerAPI.Entities;
 using ServerAPI.Dtos;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.AspNetCore.SignalR;
+using ServerAPI.Hubs;
+using Microsoft.EntityFrameworkCore;
 
 namespace ServerAPI.Controllers
 {
@@ -15,10 +18,12 @@ namespace ServerAPI.Controllers
     {
         private readonly RkappDbContext _context;
         private readonly IMemoryCache _cache;
-        public InvoiceController(RkappDbContext context, IMemoryCache cache)
+        private readonly IHubContext<NotificationsHub> _hub;
+        public InvoiceController(RkappDbContext context, IMemoryCache cache, IHubContext<NotificationsHub> hub)
         {
             _context = context;
             _cache = cache;
+            _hub = hub;
         }
         [HttpGet]
         public IActionResult GetAllInvoices(
@@ -84,7 +89,10 @@ namespace ServerAPI.Controllers
         [HttpGet("{id}")]
         public IActionResult GetInvoiceById(int id)
         {
-            var invoice = _context.Invoices.Find(id);
+            var invoice = _context.Invoices
+            .Include(i => i.Client)
+            .Include(i => i.Service)
+            .FirstOrDefault(i => i.Id == id);
             if (invoice == null) return NotFound();
             var dto = new InvoiceDto
             {
@@ -111,7 +119,7 @@ namespace ServerAPI.Controllers
             bool serviceExists = _context.Services.Any(s => s.Id == dto.ServiceId);
             if (!serviceExists) return BadRequest($"Услуга с ID={dto.ServiceId} не существует!");
 
-            bool receiptNumberExists = _context.Invoices.Any(inv => inv.ReceiptNumber == dto.ReceiptNumber);
+            bool receiptNumberExists = _context.Invoices.Any(inv => inv.ReceiptNumber == dto.ReceiptNumber && dto.ReceiptNumber == "");
             if (receiptNumberExists) return BadRequest($"Счёт с номером квитанции: {dto.ReceiptNumber} уже существует!");
 
             var invoice = new Invoice
@@ -129,6 +137,7 @@ namespace ServerAPI.Controllers
             dto.Id = invoice.Id;
             dto.PaymentDate = invoice.PaymentDate;
             _cache.Remove("AllInvoices");
+            _hub.Clients.All.SendAsync("RefreshInvoices");
             return CreatedAtAction(nameof(GetInvoiceById), new { Id = invoice.Id }, dto);
         }
         [HttpPut("{id}")]
@@ -140,7 +149,7 @@ namespace ServerAPI.Controllers
             bool serviceExists = _context.Services.Any(s => s.Id == dto.ServiceId);
             if (!serviceExists) return BadRequest($"Услуга с ID={dto.ServiceId} не существует!");
 
-            bool receiptNumberExists = _context.Invoices.Any(inv => inv.ReceiptNumber == dto.ReceiptNumber && inv.Id != id);
+            bool receiptNumberExists = _context.Invoices.Any(inv => inv.ReceiptNumber == dto.ReceiptNumber && inv.Id != id && dto.ReceiptNumber == "");
             if (receiptNumberExists) return BadRequest($"Счёт с номером квитанции: {dto.ReceiptNumber} уже существует!");
 
             var invoice = _context.Invoices.Find(id);
@@ -156,6 +165,7 @@ namespace ServerAPI.Controllers
             _context.SaveChanges();
             dto.Id = invoice.Id;
             _cache.Remove("AllInvoices");
+            _hub.Clients.All.SendAsync("RefreshInvoices");
             return Ok(dto);
         }
         [HttpDelete("{id}")]
@@ -166,6 +176,7 @@ namespace ServerAPI.Controllers
             _context.Invoices.Remove(invoice);
             _context.SaveChanges();
             _cache.Remove("AllInvoices");
+            _hub.Clients.All.SendAsync("RefreshInvoices");
             return NoContent();
         }
     }

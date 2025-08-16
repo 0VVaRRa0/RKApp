@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using ServerAPI.Entities;
 using ServerAPI.Dtos;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.AspNetCore.SignalR;
+using ServerAPI.Hubs;
 
 namespace ServerAPI.Controllers
 {
@@ -11,10 +13,12 @@ namespace ServerAPI.Controllers
     {
         private readonly RkappDbContext _context;
         private readonly IMemoryCache _cache;
-        public ClientController(RkappDbContext context, IMemoryCache cache)
+        private readonly IHubContext<NotificationsHub> _hub;
+        public ClientController(RkappDbContext context, IMemoryCache cache, IHubContext<NotificationsHub> hub)
         {
             _context = context;
             _cache = cache;
+            _hub = hub;
         }
         [HttpGet]
         public IActionResult GetAllClients(
@@ -96,6 +100,8 @@ namespace ServerAPI.Controllers
             _cache.Remove("AllClients");
             _cache.Remove($"Client_{client.Login}");
 
+            _hub.Clients.All.SendAsync("RefreshClients");
+
             return CreatedAtAction(nameof(GetClientById), new { id = client.Id }, dto);
         }
         [HttpPut("{id}")]
@@ -121,6 +127,8 @@ namespace ServerAPI.Controllers
             _cache.Remove("AllClients");
             _cache.Remove($"Client_{client.Login}");
 
+            _hub.Clients.All.SendAsync("RefreshClients");
+
             return Ok(dto);
         }
         [HttpDelete("{id}")]
@@ -134,6 +142,8 @@ namespace ServerAPI.Controllers
 
             _cache.Remove("AllClients");
             _cache.Remove($"Client_{client.Login}");
+
+            _hub.Clients.All.SendAsync("RefreshClients");
 
             return NoContent();
         }
