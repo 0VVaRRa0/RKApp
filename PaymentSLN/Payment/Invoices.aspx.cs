@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.AspNet.SignalR.Client;
+using Newtonsoft.Json;
 using Payment.Dtos;
 using System;
 using System.Collections.Generic;
@@ -15,28 +16,48 @@ namespace Payment
         {
             if (!IsPostBack)
             {
-                var client = Session["client"] as ClientDto;
-                if (client == null) Response.Redirect("Login");
+                UpdateGridView();
+                var hubUrl = "http://localhost:8000/notificationsHub";
+                var connection = new HubConnection(hubUrl);
+                var hubProxy = connection.CreateHubProxy("NotificationsHub");
 
-                var httpClient = new HttpClient();
-                var response = httpClient
-                    .GetAsync($"http://localhost:8000/api/invoices?clientId={client.Id}")
-                    .GetAwaiter().GetResult();
-                var jsonInvoices = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-                invoices = JsonConvert.DeserializeObject<List<InvoiceDto>>(jsonInvoices);
+                hubProxy.On("RefreshInvoices", () =>
+                {
+                    UpdateGridView();
+                });
 
-                if (invoices.Count == 0) return;
+                connection.Start().ContinueWith(task =>
+                {
+                    if (task.IsFaulted)
+                        System.Diagnostics.Debug.WriteLine("Ошибка подключения к SignalR: " + task.Exception?.GetBaseException().Message);
+                });
 
-                EmptyInvoices.Visible = false;
-                InvoicesGV.DataSource = invoices;
-                InvoicesGV.DataBind();
-
-                ViewState["Invoices"] = invoices;
             }
             else
             {
                 invoices = ViewState["Invoices"] as List<InvoiceDto>;
             }
+        }
+
+        private void UpdateGridView()
+        {
+            var client = Session["client"] as ClientDto;
+            if (client == null) Response.Redirect("Login");
+
+            var httpClient = new HttpClient();
+            var response = httpClient
+                .GetAsync($"http://localhost:8000/api/invoices?clientId={client.Id}")
+                .GetAwaiter().GetResult();
+            var jsonInvoices = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+            invoices = JsonConvert.DeserializeObject<List<InvoiceDto>>(jsonInvoices);
+
+            if (invoices.Count == 0) return;
+
+            EmptyInvoices.Visible = false;
+            InvoicesGV.DataSource = invoices;
+            InvoicesGV.DataBind();
+
+            ViewState["Invoices"] = invoices;
         }
 
         protected void InvoicesGV_RowDataBound(object sender, GridViewRowEventArgs e)
