@@ -119,7 +119,7 @@ namespace ServerAPI.Controllers
             bool serviceExists = _context.Services.Any(s => s.Id == dto.ServiceId);
             if (!serviceExists) return BadRequest($"Услуга с ID={dto.ServiceId} не существует!");
 
-            bool receiptNumberExists = _context.Invoices.Any(inv => inv.ReceiptNumber == dto.ReceiptNumber);
+            bool receiptNumberExists = _context.Invoices.Any(inv => inv.ReceiptNumber == dto.ReceiptNumber && dto.ReceiptNumber == "");
             if (receiptNumberExists) return BadRequest($"Счёт с номером квитанции: {dto.ReceiptNumber} уже существует!");
 
             var invoice = new Invoice
@@ -149,7 +149,7 @@ namespace ServerAPI.Controllers
             bool serviceExists = _context.Services.Any(s => s.Id == dto.ServiceId);
             if (!serviceExists) return BadRequest($"Услуга с ID={dto.ServiceId} не существует!");
 
-            bool receiptNumberExists = _context.Invoices.Any(inv => inv.ReceiptNumber == dto.ReceiptNumber && inv.Id != id);
+            bool receiptNumberExists = _context.Invoices.Any(inv => inv.ReceiptNumber == dto.ReceiptNumber && inv.Id != id && dto.ReceiptNumber == "");
             if (receiptNumberExists) return BadRequest($"Счёт с номером квитанции: {dto.ReceiptNumber} уже существует!");
 
             var invoice = _context.Invoices.Find(id);
