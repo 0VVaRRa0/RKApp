@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using ServerAPI.Entities;
+using ServerAPI.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMemoryCache();
+builder.Services.AddSignalR();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -20,6 +22,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.MapHub<NotificationsHub>("/notificationsHub");
 app.MapControllers();
 
 app.Run();
