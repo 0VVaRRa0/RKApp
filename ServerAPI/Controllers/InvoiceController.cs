@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using ServerAPI.Entities;
 using ServerAPI.Dtos;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace ServerAPI.Controllers
 {
@@ -13,9 +14,11 @@ namespace ServerAPI.Controllers
     public class InvoiceController : ControllerBase
     {
         private readonly RkappDbContext _context;
-        public InvoiceController(RkappDbContext context)
+        private readonly IMemoryCache _cache;
+        public InvoiceController(RkappDbContext context, IMemoryCache cache)
         {
             _context = context;
+            _cache = cache;
         }
         [HttpGet]
         public IActionResult GetAllInvoices(
@@ -27,29 +30,9 @@ namespace ServerAPI.Controllers
             string? clientLogin = null,
             string? status = null)
         {
-            var query = _context.Invoices.AsQueryable();
-            if (issueDate.HasValue)
-                query = query.Where(i => i.IssueDate == issueDate.Value);
-
-            if (paymentDate.HasValue)
-                query = query.Where(i => i.PaymentDate == paymentDate.Value);
-
-            if (serviceId.HasValue)
-                query = query.Where(i => i.ServiceId == serviceId);
-
-            if (!string.IsNullOrEmpty(ServiceName))
-                query = query.Where(i => i.Service.Name.Contains(ServiceName));
-                
-            if (!string.IsNullOrEmpty(clientLogin))
-                query = query.Where(i => i.Client.Login.Contains(clientLogin));
-                
-            if (clientId.HasValue)
-                query = query.Where(i => i.ClientId == clientId);
-
-            if (!string.IsNullOrEmpty(status))
-                query = query.Where(i => i.Status == status);
-            var invoices = query.Select(
-                i => new InvoiceDto
+            if (!_cache.TryGetValue("AllInvoices", out List<InvoiceDto>? cachedInvoices))
+            {
+                var invoices = _context.Invoices.Select(i => new InvoiceDto
                 {
                     Id = i.Id,
                     ServiceId = i.ServiceId,
@@ -62,11 +45,42 @@ namespace ServerAPI.Controllers
                     PaymentDate = i.PaymentDate,
                     ReceiptNumber = i.ReceiptNumber,
                     Status = i.Status
-                }
-            )
-            .ToList();
-            return Ok(invoices);
+                }).ToList();
+
+                var cacheOptions = new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(1)
+                };
+                _cache.Set("AllInvoices", invoices, cacheOptions);
+                cachedInvoices = invoices;
+            }
+
+            var query = cachedInvoices!.AsQueryable();
+
+            if (issueDate.HasValue)
+                query = query.Where(i => i.IssueDate == issueDate.Value);
+
+            if (paymentDate.HasValue)
+                query = query.Where(i => i.PaymentDate == paymentDate.Value);
+
+            if (serviceId.HasValue)
+                query = query.Where(i => i.ServiceId == serviceId);
+
+            if (!string.IsNullOrEmpty(ServiceName))
+                query = query.Where(i => i.ServiceName!.Contains(ServiceName));
+
+            if (!string.IsNullOrEmpty(clientLogin))
+                query = query.Where(i => i.ClientLogin!.Contains(clientLogin));
+
+            if (clientId.HasValue)
+                query = query.Where(i => i.ClientId == clientId);
+
+            if (!string.IsNullOrEmpty(status))
+                query = query.Where(i => i.Status == status);
+
+            return Ok(query.ToList());
         }
+
         [HttpGet("{id}")]
         public IActionResult GetInvoiceById(int id)
         {
@@ -114,6 +128,7 @@ namespace ServerAPI.Controllers
             _context.SaveChanges();
             dto.Id = invoice.Id;
             dto.PaymentDate = invoice.PaymentDate;
+            _cache.Remove("AllInvoices");
             return CreatedAtAction(nameof(GetInvoiceById), new { Id = invoice.Id }, dto);
         }
         [HttpPut("{id}")]
@@ -140,6 +155,7 @@ namespace ServerAPI.Controllers
             invoice.Status = dto.Status;
             _context.SaveChanges();
             dto.Id = invoice.Id;
+            _cache.Remove("AllInvoices");
             return Ok(dto);
         }
         [HttpDelete("{id}")]
@@ -149,6 +165,7 @@ namespace ServerAPI.Controllers
             if (invoice == null) return NotFound();
             _context.Invoices.Remove(invoice);
             _context.SaveChanges();
+            _cache.Remove("AllInvoices");
             return NoContent();
         }
     }
