@@ -1,10 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using ServerAPI.Entities;
 using ServerAPI.Dtos;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace ServerAPI.Controllers
 {
@@ -13,41 +10,57 @@ namespace ServerAPI.Controllers
     public class ClientController : ControllerBase
     {
         private readonly RkappDbContext _context;
-        public ClientController(RkappDbContext context)
+        private readonly IMemoryCache _cache;
+        public ClientController(RkappDbContext context, IMemoryCache cache)
         {
             _context = context;
+            _cache = cache;
         }
         [HttpGet]
         public IActionResult GetAllClients(
             string? clientLogin = null
         )
         {
-            var query = _context.Clients.AsQueryable();
-            var isClientLogin = string.IsNullOrEmpty(clientLogin);
+            string cacheKey = string.IsNullOrEmpty(clientLogin) 
+                ? "AllClients" 
+                : $"Client_{clientLogin}";
 
-            if (!isClientLogin)
-                query = query.Where(c => c.Login == clientLogin);
+            if (!_cache.TryGetValue(cacheKey, out List<ClientDto>? cachedClients))
+            {
+                var query = _context.Clients.AsQueryable();
 
-            var clients = query.Select(
-                c => new ClientDto
+                if (!string.IsNullOrEmpty(clientLogin))
+                    query = query.Where(c => c.Login == clientLogin);
+
+                var clients = query.Select(c => new ClientDto
                 {
                     Id = c.Id,
                     Login = c.Login,
                     FullName = c.FullName,
                     Email = c.Email,
                     PhoneNumber = c.PhoneNumber
-                }
-            );
-            if (!isClientLogin)
-                return Ok(clients.FirstOrDefault());
-            else
-                return Ok(clients.ToList());
+                }).ToList();
+
+                var cacheOptions = new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(1)
+                };
+
+                _cache.Set(cacheKey, clients, cacheOptions);
+                cachedClients = clients;
+            }
+
+            if (!string.IsNullOrEmpty(clientLogin))
+                return Ok(cachedClients!.FirstOrDefault());
+
+            return Ok(cachedClients);
         }
         [HttpGet("{id}")]
         public IActionResult GetClientById(int id)
         {
             var client = _context.Clients.Find(id);
             if (client == null) return NotFound();
+
             var dto = new ClientDto
             {
                 Id = client.Id,
@@ -56,21 +69,7 @@ namespace ServerAPI.Controllers
                 Email = client.Email,
                 PhoneNumber = client.PhoneNumber
             };
-            return Ok(dto);
-        }
-        [HttpGet("login/{login}")]
-        public IActionResult GetClientByLogin(string login)
-        {
-            var client = _context.Clients.SingleOrDefault(c => c.Login == login);
-            if (client == null) return NotFound();
-            var dto = new ClientDto
-            {
-                Id = client.Id,
-                Login = client.Login,
-                FullName = client.FullName,
-                Email = client.Email,
-                PhoneNumber = client.PhoneNumber
-            };
+            
             return Ok(dto);
         }
         [HttpPost]
@@ -93,6 +92,10 @@ namespace ServerAPI.Controllers
             _context.Add(client);
             _context.SaveChanges();
             dto.Id = client.Id;
+
+            _cache.Remove("AllClients");
+            _cache.Remove($"Client_{client.Login}");
+
             return CreatedAtAction(nameof(GetClientById), new { id = client.Id }, dto);
         }
         [HttpPut("{id}")]
@@ -106,6 +109,7 @@ namespace ServerAPI.Controllers
 
             var client = _context.Clients.Find(id);
             if (client == null) return NotFound();
+
             client.Login = dto.Login;
             client.FullName = dto.FullName;
             client.Email = dto.Email;
@@ -113,6 +117,10 @@ namespace ServerAPI.Controllers
 
             _context.SaveChanges();
             dto.Id = client.Id;
+
+            _cache.Remove("AllClients");
+            _cache.Remove($"Client_{client.Login}");
+
             return Ok(dto);
         }
         [HttpDelete("{id}")]
@@ -120,8 +128,13 @@ namespace ServerAPI.Controllers
         {
             var client = _context.Clients.Find(id);
             if (client == null) return NotFound();
+            
             _context.Clients.Remove(client);
             _context.SaveChanges();
+
+            _cache.Remove("AllClients");
+            _cache.Remove($"Client_{client.Login}");
+
             return NoContent();
         }
     }
