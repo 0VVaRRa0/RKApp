@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using ServerAPI.Dtos;
 using ServerAPI.Entities;
 
@@ -10,17 +11,29 @@ namespace ServerAPI.Controllers
     public class ServiceController : ControllerBase
     {
         private readonly RkappDbContext _context;
-        public ServiceController(RkappDbContext context)
+        private readonly IMemoryCache _cache;
+        public ServiceController(RkappDbContext context, IMemoryCache cache)
         {
             _context = context;
+            _cache = cache;
         }
         [HttpGet]
         public IActionResult GetAllServices()
         {
-            var services = _context.Services
-            .Select(s => new ServiceDto { Id = s.Id, Name = s.Name })
-            .ToList();
-            return Ok(services);
+            if (!_cache.TryGetValue("AllServices", out List<ServiceDto>? cachedServices))
+            {
+                var services = _context.Services
+                .Select(s => new ServiceDto { Id = s.Id, Name = s.Name })
+                .ToList();
+
+                var cacheOptions = new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(1)
+                };
+                _cache.Set("AllServices", services, cacheOptions);
+                cachedServices = services;
+            }
+            return Ok(cachedServices);
         }
         [HttpGet("{id}")]
         public IActionResult GetServiceById(int id)
@@ -47,6 +60,9 @@ namespace ServerAPI.Controllers
             _context.Services.Add(service);
             _context.SaveChanges();
             dto.Id = service.Id;
+
+            _cache.Remove("AllServices");
+
             return CreatedAtAction(nameof(GetServiceById), new { id = dto.Id }, dto);
         }
         [HttpPut("{id}")]
@@ -60,6 +76,9 @@ namespace ServerAPI.Controllers
             service.Name = dto.Name;
             dto.Id = service.Id;
             _context.SaveChanges();
+
+            _cache.Remove("AllServices");
+
             return Ok(dto);
         }
         [HttpDelete("{id}")]
@@ -69,6 +88,9 @@ namespace ServerAPI.Controllers
             if (service == null) return NotFound();
             _context.Services.Remove(service);
             _context.SaveChanges();
+
+            _cache.Remove("AllServices");
+            
             return NoContent();
         }
     }

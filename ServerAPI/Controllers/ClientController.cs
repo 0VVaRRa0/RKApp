@@ -25,7 +25,7 @@ namespace ServerAPI.Controllers
                 ? "AllClients" 
                 : $"Client_{clientLogin}";
 
-            if (!_cache.TryGetValue(cacheKey, out object? cachedClients))
+            if (!_cache.TryGetValue(cacheKey, out List<ClientDto>? cachedClients))
             {
                 var query = _context.Clients.AsQueryable();
 
@@ -50,12 +50,10 @@ namespace ServerAPI.Controllers
                 cachedClients = clients;
             }
 
-            var result = cachedClients as List<ClientDto>;
-
             if (!string.IsNullOrEmpty(clientLogin))
-                return Ok(result?.FirstOrDefault());
+                return Ok(cachedClients!.FirstOrDefault());
 
-            return Ok(result);
+            return Ok(cachedClients);
         }
         [HttpGet("{id}")]
         public IActionResult GetClientById(int id)
