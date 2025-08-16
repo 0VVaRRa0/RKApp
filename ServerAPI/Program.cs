@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using ServerAPI.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddMemoryCache();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
