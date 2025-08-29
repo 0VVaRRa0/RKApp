@@ -41,13 +41,17 @@ public class InvoiceController : ControllerBase
             || status.HasValue)
         {
             var filtered = _context.Invoices
+            .Include(i => i.Client)
+            .Include(i => i.Service)
+            .AsEnumerable()
             .Where(inv =>
-                !issueDate.HasValue || inv.IssueDate.Date == issueDate.Value.Date &&
-                !clientId.HasValue || inv.ClientId == clientId &&
-                !serviceId.HasValue || inv.ServiceId == serviceId &&
-                string.IsNullOrEmpty(serviceName) || inv.Service.Name.Contains(serviceName!, StringComparison.OrdinalIgnoreCase) &&
-                string.IsNullOrEmpty(clientLogin) || inv.Client.Login.Contains(clientLogin!, StringComparison.OrdinalIgnoreCase) &&
-                status.HasValue || inv.Status == status
+                (!issueDate.HasValue || inv.IssueDate.Date == issueDate.Value.Date) &&
+                (!paymentDate.HasValue || inv.PaymentDate == paymentDate.Value.Date) &&
+                (!clientId.HasValue || inv.ClientId == clientId.Value) &&
+                (!serviceId.HasValue || inv.ServiceId == serviceId.Value) &&
+                (string.IsNullOrEmpty(serviceName) || inv.Service.Name.Contains(serviceName, StringComparison.OrdinalIgnoreCase)) &&
+                (string.IsNullOrEmpty(clientLogin) || inv.Client.Login.Contains(clientLogin, StringComparison.OrdinalIgnoreCase)) &&
+                (!status.HasValue || inv.Status == status.Value)
             )
             .Select(inv => _mapper.Map<InvoiceDto>(inv))
             .ToList();
