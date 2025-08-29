@@ -6,10 +6,8 @@ public class InvoiceDto
 {
     public int Id { get; set; }
 
-    [JsonIgnore]
     public int ClientId { get; set; }
 
-    [JsonIgnore]
     public int ServiceId { get; set; }
 
     public ClientDto? Client { get; set; }
