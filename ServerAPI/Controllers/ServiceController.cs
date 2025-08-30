@@ -30,6 +30,7 @@ public class ServiceController : ControllerBase
         if (!string.IsNullOrEmpty(serviceName))
         {
             var filtered = _context.Services
+            .AsEnumerable()
             .Where(s => s.Name.Contains(serviceName, StringComparison.OrdinalIgnoreCase)).ToList()
             .Select(s => _mapper.Map<ServiceDto>(s))
             .ToList();

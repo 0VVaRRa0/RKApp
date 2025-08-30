@@ -26,6 +26,7 @@ public class ClientController : Controller
 
     [HttpGet]
     public IActionResult GetClients(
+        string? enteredLogin,
         string? login,
         string? fullName,
         string? phone,
@@ -33,12 +34,15 @@ public class ClientController : Controller
     )
     {
         if (!string.IsNullOrEmpty(login)
+            || !string.IsNullOrEmpty(enteredLogin)
             || !string.IsNullOrEmpty(fullName)
             || !string.IsNullOrEmpty(phone)
             || !string.IsNullOrEmpty(email))
         {
             var filtered = _context.Clients
+            .AsEnumerable()
             .Where(c =>
+                (string.IsNullOrEmpty(enteredLogin) || string.Equals(c.Login, enteredLogin, StringComparison.OrdinalIgnoreCase)) &&
                 (string.IsNullOrEmpty(login) || c.Login.Contains(login, StringComparison.OrdinalIgnoreCase)) &&
                 (string.IsNullOrEmpty(fullName) || c.FullName.Contains(fullName, StringComparison.OrdinalIgnoreCase)) &&
                 (string.IsNullOrEmpty(phone) || c.Phone.Contains(phone, StringComparison.OrdinalIgnoreCase)) &&
