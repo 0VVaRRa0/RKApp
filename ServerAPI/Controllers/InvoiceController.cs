@@ -111,7 +111,7 @@ public class InvoiceController : ControllerBase
         return Ok(dto);
     }
     
-    [HttpDelete]
+    [HttpDelete("{id}")]
     public IActionResult DeleteInvoice(int id)
     {
         var invoice = _context.Invoices.Find(id);
