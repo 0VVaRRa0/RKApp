@@ -201,8 +201,21 @@ public class MainForm : Form
         }
         var objects = await response.Content.ReadFromJsonAsync<List<T>>();
         if (objects == null) { MessageBox.Show("Не удалось преобразовать данные", "Ошибка"); return; }
-        list.Clear();
-        foreach (var o in objects) { list.Add(o); }
+        if (InvokeRequired)
+        {
+            Invoke(new Action(() =>
+            {
+                list.Clear();
+                foreach (var obj in objects)
+                    list.Add(obj);
+            }));
+        }
+        else
+        {
+            list.Clear();
+            foreach (var obj in objects)
+                list.Add(obj);
+        }
     }
 
     private async void LoadAllData()
