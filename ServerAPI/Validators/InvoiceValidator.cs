@@ -23,8 +23,11 @@ public class InvoiceValidator : AbstractValidator<InvoiceDto>
 
         RuleFor(inv => inv.IssueDate)
             .NotEmpty()
-            .WithMessage("Дата выставления обязательна для заполнения")
+            .WithMessage("Дата выставления обязательна для заполнения");
+
+        RuleFor(inv => inv.IssueDate)
             .GreaterThanOrEqualTo(DateTime.Today)
+            .When(inv => inv.Id == 0)
             .WithMessage("Дата выставления не может быть раньше, чем сегодня");
 
         RuleFor(inv => inv.DueDate)
