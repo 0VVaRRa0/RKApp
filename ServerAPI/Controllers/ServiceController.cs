@@ -1,5 +1,6 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Memory;
 using ServerAPI.Dtos;
 using ServerAPI.Entities;
@@ -13,11 +14,13 @@ public class ServiceController : ControllerBase
     private readonly RkdbContext _context;
     private readonly IMapper _mapper;
     private readonly IMemoryCache _cache;
-    public ServiceController(RkdbContext context, IMapper mapper, IMemoryCache cache)
+    private readonly IHubContext _hub;
+    public ServiceController(RkdbContext context, IMapper mapper, IMemoryCache cache, IHubContext hub)
     {
         _context = context;
         _mapper = mapper;
         _cache = cache;
+        _hub = hub;
     }
 
     [HttpGet]
@@ -55,20 +58,21 @@ public class ServiceController : ControllerBase
     }
 
     [HttpPost]
-    public IActionResult CreateService(ServiceDto dto)
+    public async Task<IActionResult> CreateService(ServiceDto dto)
     {
         var service = _mapper.Map<Service>(dto);
 
         _context.Services.Add(service);
         _context.SaveChanges();
         _cache.Remove("AllServices");
+        await _hub.Clients.All.SendAsync("ServicesUpdated");
 
         dto.Id = service.Id;
         return CreatedAtAction(nameof(GetServiceById), new { id = dto.Id }, dto);
     }
 
     [HttpPut("{id}")]
-    public IActionResult UpdateService(int id, ServiceDto dto)
+    public async Task<IActionResult> UpdateService(int id, ServiceDto dto)
     {
         var service = _context.Services.Find(id);
         if (service == null) return NotFound();
@@ -76,13 +80,14 @@ public class ServiceController : ControllerBase
 
         _context.SaveChanges();
         _cache.Remove("AllServices");
+        await _hub.Clients.All.SendAsync("ServicesUpdated");
 
         dto.Id = service.Id;
         return Ok(dto);
     }
 
     [HttpDelete("{id}")]
-    public IActionResult DeleteService(int id)
+    public async Task<IActionResult> DeleteService(int id)
     {
         var service = _context.Services.Find(id);
         if (service == null) return NotFound();
@@ -90,6 +95,7 @@ public class ServiceController : ControllerBase
         _context.Services.Remove(service);
         _context.SaveChanges();
         _cache.Remove("AllServices");
+        await _hub.Clients.All.SendAsync("ServicesUpdated");
 
         return NoContent();
     }

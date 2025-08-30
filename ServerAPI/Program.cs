@@ -16,6 +16,7 @@ builder.Services.AddMemoryCache();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddFluentValidationAutoValidation(fv => { fv.DisableDataAnnotationsValidation = true; });
 builder.Services.AddFluentValidationClientsideAdapters();
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
