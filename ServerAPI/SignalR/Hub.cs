@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 
-namespace SignalR;
+namespace ServerAPI.SignalR;
 
 public class ServerHub : Hub
 {}

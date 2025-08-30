@@ -1,8 +1,10 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 using Accounting.Dialogs;
 using Accounting.Dtos;
+using Microsoft.AspNetCore.SignalR.Client;
 
 namespace Accounting;
 
@@ -13,6 +15,7 @@ public class MainForm : Form
     private const string ClientsStr = "Клиенты";
     private const string InvoicesStr = "Счета";
     private readonly HttpClient httpClient = new();
+    private HubConnection _connection = null!;
     private Size windowSize = new(1366, 768);
     TabControl tabControl = null!;
     private DataGridView servicesDataGrid = null!;
@@ -29,6 +32,45 @@ public class MainForm : Form
         MaximumSize = windowSize;
         InitializeTabs();
         LoadAllData();
+        InitializeSignalR();
+    }
+
+    private void InitializeSignalR()
+    {
+        _connection = new HubConnectionBuilder()
+            .WithUrl($"{ApiUrl}/hub")
+            .WithAutomaticReconnect()
+            .Build();
+
+        _connection.On("ServicesUpdated", async () =>
+        {
+            await LoadData("/services", servicesList);
+        });
+
+        _connection.On("ClientsUpdated", async () =>
+        {
+            await LoadData("/clients", clientsList);
+        });
+
+        _connection.On("InvoicesUpdated", async () =>
+        {
+            await LoadData("/invoices", invoicesList);
+        });
+
+        ConnectToHub();
+    }
+
+    private async void ConnectToHub()
+    {
+        try
+        {
+            await _connection.StartAsync();
+            Debug.WriteLine("Connected to SignalR Hub");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine("Error connecting to Hub: " + ex.Message);
+        }
     }
 
     public void InitializeTabs()

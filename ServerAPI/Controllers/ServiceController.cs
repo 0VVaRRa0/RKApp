@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Memory;
 using ServerAPI.Dtos;
 using ServerAPI.Entities;
+using ServerAPI.SignalR;
 
 namespace ServerAPI.Controllers;
 
@@ -14,8 +15,8 @@ public class ServiceController : ControllerBase
     private readonly RkdbContext _context;
     private readonly IMapper _mapper;
     private readonly IMemoryCache _cache;
-    private readonly IHubContext _hub;
-    public ServiceController(RkdbContext context, IMapper mapper, IMemoryCache cache, IHubContext hub)
+    private readonly IHubContext<ServerHub> _hub;
+    public ServiceController(RkdbContext context, IMapper mapper, IMemoryCache cache, IHubContext<ServerHub> hub)
     {
         _context = context;
         _mapper = mapper;
