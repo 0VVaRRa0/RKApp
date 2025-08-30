@@ -1,8 +1,10 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Memory;
 using ServerAPI.Dtos;
 using ServerAPI.Entities;
+using ServerAPI.SignalR;
 
 namespace ServerAPI.Controllers;
 
@@ -13,11 +15,13 @@ public class ClientController : Controller
     private readonly RkdbContext _context;
     private readonly IMapper _mapper;
     private readonly IMemoryCache _cache;
-    public ClientController(RkdbContext context, IMapper mapper, IMemoryCache cache)
+    private readonly IHubContext<ServerHub> _hub;
+    public ClientController(RkdbContext context, IMapper mapper, IMemoryCache cache, IHubContext<ServerHub> hub)
     {
         _context = context;
         _mapper = mapper;
         _cache = cache;
+        _hub = hub;
     }
 
     [HttpGet]
@@ -68,19 +72,20 @@ public class ClientController : Controller
     }
 
     [HttpPost]
-    public IActionResult CreateClient(ClientDto dto)
+    public async Task<IActionResult> CreateClient(ClientDto dto)
     {
         var client = _mapper.Map<Client>(dto);
         _context.Clients.Add(client);
         _context.SaveChanges();
         _cache.Remove("AllClients");
+        await _hub.Clients.All.SendAsync("ClientsUpdated");
 
         dto.Id = client.Id;
         return CreatedAtAction(nameof(GetClientById), new {id = client.Id}, dto);
     }
 
     [HttpPut("{id}")]
-    public IActionResult UpdateClient(int id, ClientDto dto)
+    public async Task<IActionResult> UpdateClient(int id, ClientDto dto)
     {
         var client = _context.Clients.Find(id);
         if (client == null) return NotFound();
@@ -88,12 +93,13 @@ public class ClientController : Controller
 
         _context.SaveChanges();
         _cache.Remove("AllClients");
+        await _hub.Clients.All.SendAsync("ClientsUpdated");
 
         return Ok(dto);
     }
 
     [HttpDelete("{id}")]
-    public IActionResult DeleteClient(int id)
+    public async Task<IActionResult> DeleteClient(int id)
     {
         var client = _context.Clients.Find(id);
         if (client == null) return NotFound();
@@ -101,6 +107,7 @@ public class ClientController : Controller
         _context.Clients.Remove(client);
         _context.SaveChanges();
         _cache.Remove("AllClients");
+        await _hub.Clients.All.SendAsync("ClientsUpdated");
 
         return NoContent();
     }

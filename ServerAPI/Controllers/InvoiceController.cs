@@ -1,9 +1,11 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using ServerAPI.Dtos;
 using ServerAPI.Entities;
+using ServerAPI.SignalR;
 
 namespace ServerAPI.Controllers;
 
@@ -14,11 +16,13 @@ public class InvoiceController : ControllerBase
     private readonly RkdbContext _context;
     private readonly IMapper _mapper;
     private readonly IMemoryCache _cache;
-    public InvoiceController(RkdbContext context, IMapper mapper, IMemoryCache cache)
+    private readonly IHubContext<ServerHub> _hub;
+    public InvoiceController(RkdbContext context, IMapper mapper, IMemoryCache cache, IHubContext<ServerHub> hub)
     {
         _context = context;
         _mapper = mapper;
         _cache = cache;
+        _hub = hub;
     }
 
     [HttpGet]
@@ -87,38 +91,41 @@ public class InvoiceController : ControllerBase
     }
 
     [HttpPost]
-    public IActionResult CreateInvoice(InvoiceDto dto)
+    public async Task<IActionResult> CreateInvoice(InvoiceDto dto)
     {
         var invoice = _mapper.Map<Invoice>(dto);
         _context.Invoices.Add(invoice);
         _context.SaveChanges();
         _cache.Remove("AllInvoices");
+        await _hub.Clients.All.SendAsync("InvoicesUpdated");
 
         dto.Id = invoice.Id;
         return CreatedAtAction(nameof(GetInvoiceById), new { Id = dto.Id }, dto);
     }
 
     [HttpPut("{id}")]
-    public IActionResult UpdateInvoice(int id, InvoiceDto dto)
+    public async Task<IActionResult> UpdateInvoice(int id, InvoiceDto dto)
     {
         var invoice = _context.Invoices.Find(id);
         if (invoice == null) return NotFound();
         _mapper.Map(dto, invoice);
         _context.SaveChanges();
         _cache.Remove("AllInvoices");
+        await _hub.Clients.All.SendAsync("InvoicesUpdated");
 
         dto.Id = invoice.Id;
         return Ok(dto);
     }
     
     [HttpDelete("{id}")]
-    public IActionResult DeleteInvoice(int id)
+    public async Task<IActionResult> DeleteInvoice(int id)
     {
         var invoice = _context.Invoices.Find(id);
         if (invoice == null) return NotFound();
         _context.Invoices.Remove(invoice);
         _context.SaveChanges();
         _cache.Remove("AllInvoices");
+        await _hub.Clients.All.SendAsync("InvoicesUpdated");
 
         return NoContent();
     }
