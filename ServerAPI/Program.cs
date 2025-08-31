@@ -17,6 +17,16 @@ builder.Services.AddMemoryCache();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddFluentValidationAutoValidation(fv => { fv.DisableDataAnnotationsValidation = true; });
 builder.Services.AddFluentValidationClientsideAdapters();
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins("http://localhost:59683")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
 builder.Services.AddSignalR();
 
 var app = builder.Build();
@@ -29,6 +39,6 @@ if (app.Environment.IsDevelopment())
 
 app.MapHub<ServerHub>("/api/hub");
 app.MapControllers();
-
+app.UseCors();
 
 app.Run();
