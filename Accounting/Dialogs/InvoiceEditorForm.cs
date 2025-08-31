@@ -1,16 +1,21 @@
+using System.ComponentModel;
 using System.Net.Http.Json;
+using Accounting.Dialogs.Validation;
 using Accounting.Dtos;
+using Accounting.Validation;
 
 namespace Accounting.Dialogs;
 
 class InvoiceEditorForm : Form
 {
     private readonly HttpClient httpClient = new();
-    private readonly string apiUrl = "http://localhost:8000";
+    private const string ApiUrl = "http://localhost:8000/api";
+    private ErrorProvider _errorProvider = new();
+    InvoiceValidation validator = new();
     private Size windowSize = new(683, 384);
     private readonly InvoiceDto _invoice = null!;
-    private readonly DataGridView _servicesDataGrid = null!;
-    private readonly DataGridView _clientsDataGrid = null!;
+    private readonly BindingList<ServiceDto> _services = null!;
+    private readonly BindingList<ClientDto> _clients = null!;
     private NumericUpDown invoiceAmount = null!;
     private DateTimePicker invoiceIssueDate = null!;
     private DateTimePicker invoiceDueDate = null!;
@@ -18,14 +23,14 @@ class InvoiceEditorForm : Form
     private ComboBox clientsComboBox = null!;
     private Label invoicePaymentDate = null!;
     private Label invoiceStatus = null!;
-    public InvoiceEditorForm(DataGridView servicesDataGrid, DataGridView clientsDataGrid, InvoiceDto? invoice = null)
+    public InvoiceEditorForm(BindingList<ServiceDto> services, BindingList<ClientDto> clients, InvoiceDto? invoice = null)
     {
         Text = "Счёт";
         MinimumSize = windowSize;
         MaximumSize = windowSize;
-        _invoice = invoice ?? new InvoiceDto { Status = "NOT PAID" };
-        _servicesDataGrid = servicesDataGrid;
-        _clientsDataGrid = clientsDataGrid;
+        _invoice = invoice ?? new InvoiceDto { Status = false };
+        _services = services;
+        _clients = clients;
         InitializeComponents();
     }
 
@@ -49,16 +54,16 @@ class InvoiceEditorForm : Form
         {
             Button deleteButton = new();
             deleteButton.Text = "Удалить";
-            deleteButton.Click += SendRequest;
+            deleteButton.Click += DeleteInvoice;
             buttonsPanel.Controls.Add(deleteButton);
 
             saveButton.Text = "Сохранить";
-            saveButton.Click += SendRequest;
+            saveButton.Click += EditInvoice;
         }
         else
         {
             saveButton.Text = "Добавить";
-            saveButton.Click += SendRequest;
+            saveButton.Click += AddInvoice;
         }
 
         TableLayoutPanel invoiceTable = new();
@@ -67,54 +72,27 @@ class InvoiceEditorForm : Form
         invoiceTable.RowCount = 8;
         invoiceTable.CellBorderStyle = TableLayoutPanelCellBorderStyle.Single;
 
-        var serviceDtos = _servicesDataGrid.Rows
-            .Cast<DataGridViewRow>()
-            .Where(r => r.DataBoundItem != null)
-            .Select(r => (ServiceDto)r.DataBoundItem!)
-            .ToList();
-
-        var detailsServiceDtos = serviceDtos
-            .Select(s => new ServiceDetailDto
-            {
-                Id = s.Id,
-                Name = s.Name
-            })
-            .ToList();
-
         servicesComboBox = new();
-        servicesComboBox.DisplayMember = "DisplayName";
+        servicesComboBox.DisplayMember = "Name";
         servicesComboBox.ValueMember = "Id";
-        servicesComboBox.DataSource = detailsServiceDtos;
+        servicesComboBox.DataSource = _services;
         servicesComboBox.AutoCompleteSource = AutoCompleteSource.ListItems;
         servicesComboBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
         servicesComboBox.Width = 400;
-        Shown += (s, e) => { servicesComboBox.SelectedValue = _invoice.ServiceId; };
-        
-        var clientDtos = _clientsDataGrid.Rows
-            .Cast<DataGridViewRow>()
-            .Where(r => r.DataBoundItem != null)
-            .Select(r => (ClientDto)r.DataBoundItem!)
-            .ToList();
-
-        var detailsClientDtos = clientDtos
-            .Select(s => new ClientDetailDto
-            {
-                Id = s.Id,
-                Login = s.Login,
-                FullName = s.FullName,
-                Email = s.Email,
-                PhoneNumber = s.PhoneNumber
-            })
-            .ToList();
+        if (_invoice.Service != null)
+            Shown += (s, e) => { servicesComboBox.SelectedValue = _invoice.Service.Id; };
+        else Shown += (s, e) => { servicesComboBox.SelectedIndex = -1; };
 
         clientsComboBox = new();
-        clientsComboBox.DisplayMember = "DisplayName";
+        clientsComboBox.DisplayMember = "Login";
         clientsComboBox.ValueMember = "Id";
-        clientsComboBox.DataSource = detailsClientDtos;
+        clientsComboBox.DataSource = _clients;
         clientsComboBox.AutoCompleteSource = AutoCompleteSource.ListItems;
         clientsComboBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
         clientsComboBox.Width = 400;
-        Shown += (s, e) => { clientsComboBox.SelectedValue = _invoice.ClientId; };
+        if (_invoice.Client != null)
+            Shown += (s, e) => { clientsComboBox.SelectedValue = _invoice.Client.Id; };
+        else Shown += (s, e) => { clientsComboBox.SelectedIndex = -1; };
 
         invoiceAmount = new();
         invoiceAmount.Minimum = 0;
@@ -148,8 +126,8 @@ class InvoiceEditorForm : Form
         else invoicePaymentDate.Text = _invoice.PaymentDate.ToString();
 
         invoiceStatus = new();
-        if (_invoice.Status == "NOT PAID") invoiceStatus.Text = "NOT PAID";
-        else invoiceStatus.Text = "PAID";
+        if (!_invoice.Status) invoiceStatus.Text = "Не оплачено";
+        else invoiceStatus.Text = "Оплачено";
 
         invoiceTable.Controls.Add(servicesComboBox, 1, 0);
         invoiceTable.Controls.Add(clientsComboBox, 1, 1);
@@ -185,65 +163,72 @@ class InvoiceEditorForm : Form
     {
         invoiceDueDate.MinDate = invoiceIssueDate.Value;
     }
-
-    private async void SendRequest(object? sender, EventArgs e)
+    
+    private async void AddInvoice(object? sender, EventArgs e)
     {
-        if (sender is not Button clickedButton) return;
-        if (!CheckFields() && clickedButton.Text != "Удалить") return;
+        if (!validator.Validate(servicesComboBox, clientsComboBox, invoiceAmount))
+            return;
 
-        string messageBoxText = "";
-        HttpResponseMessage? response = null;
-
-        if (clickedButton.Text == "Добавить")
-        {
-            messageBoxText = "Счёт добавлен!";
-            response = await httpClient.PostAsJsonAsync($"{apiUrl}/api/invoices", _invoice);
-        }
-        else if (clickedButton.Text == "Сохранить")
-        {
-            messageBoxText = "Счёт изменён!";
-            response = await httpClient.PutAsJsonAsync($"{apiUrl}/api/invoices/{_invoice.Id}", _invoice);
-        }
-        else if (clickedButton.Text == "Удалить")
-        {
-            messageBoxText = "Счёт удалён!";
-            response = await httpClient.DeleteAsync($"{apiUrl}/api/invoices/{_invoice.Id}");
-        }
-
-        if (response != null && response.IsSuccessStatusCode)
-        {
-            MessageBox.Show(messageBoxText, "Успех✅");
-            DialogResult = DialogResult.OK;
-            Close();
-        }
-        else if (response is null) MessageBox.Show("Неизвестная кнопка", "Ошибка⚠️");
-        else if (!response.IsSuccessStatusCode)
-            MessageBox.Show(
-                $"Не удалось отправить запрос: {await response.Content.ReadAsStringAsync()}", "Ошибка⚠️"
-            );
-    }
-
-    private bool CheckFields()
-    {
-        var selectedServiceId = servicesComboBox.SelectedValue;
-        var selectedClientId = clientsComboBox.SelectedValue;
-        if (
-            invoiceAmount.Value == 0
-            || selectedServiceId == null
-            || selectedClientId == null
-        )
-        {
-            MessageBox.Show("Заполните все поля!", "Ошибка⚠️");
-            return false;
-        }
+        _invoice.ServiceId = (int)servicesComboBox.SelectedValue!;
+        _invoice.ClientId = (int)clientsComboBox.SelectedValue!;
+        _invoice.Amount = invoiceAmount.Value;
+        _invoice.IssueDate = invoiceIssueDate.Value.Date;
+        _invoice.DueDate = invoiceDueDate.Value.Date;
+        var response = await httpClient.PostAsJsonAsync($"{ApiUrl}/invoices", _invoice);
+        if (!await CheckResponse(response)) return;
         else
         {
-            _invoice.ServiceId = (int)selectedServiceId;
-            _invoice.ClientId = (int)selectedClientId;
-            _invoice.Amount = invoiceAmount.Value;
-            _invoice.IssueDate = invoiceIssueDate.Value;
-            _invoice.DueDate = invoiceDueDate.Value;
-            return true;
+            MessageBox.Show($"Счёт добавлен", "Успех✅");
+            CloseWindowOk();
         }
+    }
+
+    private async void EditInvoice(object? sender, EventArgs e)
+    {
+        if (!validator.Validate(servicesComboBox, clientsComboBox, invoiceAmount))
+            return;
+
+        _invoice.ServiceId = (int)servicesComboBox.SelectedValue!;
+        _invoice.ClientId = (int)clientsComboBox.SelectedValue!;
+        _invoice.Amount = invoiceAmount.Value;
+        _invoice.IssueDate = invoiceIssueDate.Value.Date;
+        _invoice.DueDate = invoiceDueDate.Value.Date;
+
+        var response = await httpClient.PutAsJsonAsync($"{ApiUrl}/invoices/{_invoice.Id}", _invoice);
+        if (!await CheckResponse(response)) return;
+        else
+        {
+            MessageBox.Show($"Счёт изменён", "Успех✅");
+            CloseWindowOk();
+        }
+    }
+
+    private async void DeleteInvoice(object? sender, EventArgs e)
+    {
+        var response = await httpClient.DeleteAsync($"{ApiUrl}/invoices/{_invoice.Id}");
+        if (!await CheckResponse(response)) return;
+        else
+        {
+            MessageBox.Show($"Счёт удалён", "Успех✅");
+            CloseWindowOk();
+        }
+    }
+
+    private async Task<bool> CheckResponse(HttpResponseMessage response)
+    {
+        if (!response.IsSuccessStatusCode)
+        {
+            var err = await response.Content.ReadFromJsonAsync<ValidationErrors>();
+            var errorsToDisplay = string.Join("\n", err!.Errors.Values.SelectMany(x => x).ToList());
+            MessageBox.Show($"Ошибка: {response.StatusCode}\n{errorsToDisplay}", "Ошибка");
+            return false;
+        }
+        return true;
+    }
+
+    private void CloseWindowOk()
+    {
+        DialogResult = DialogResult.OK;
+        Close();
     }
 }

@@ -1,19 +1,22 @@
 using System.Net.Http.Json;
 using System.Text.RegularExpressions;
+using Accounting.Dialogs.Validation;
 using Accounting.Dtos;
+using Accounting.Validation;
 
 namespace Accounting.Dialogs;
 
 class ClientEditorForm : Form
 {
     private readonly HttpClient httpClient = new();
-    private readonly string apiUrl = "http://localhost:8000";
+    private const string ApiUrl = "http://localhost:8000/api";
+    private ClientValidation validator = new();
     private Size windowSize = new(683, 384);
     private readonly ClientDto _client = null!;
     TextBox clientLoginTB = null!;
     TextBox clientFullNameTB = null!;
     TextBox clientEmailTB = null!;
-    TextBox clientPhoneNumberTB = null!;
+    TextBox clientPhoneTB = null!;
     public ClientEditorForm(ClientDto? client = null)
     {
         Text = "Клиент";
@@ -43,16 +46,16 @@ class ClientEditorForm : Form
         {
             Button deleteButton = new();
             deleteButton.Text = "Удалить";
-            deleteButton.Click += SendRequest;
+            deleteButton.Click += DeleteClient;
             buttonsPanel.Controls.Add(deleteButton);
 
             saveButton.Text = "Сохранить";
-            saveButton.Click += SendRequest;
+            saveButton.Click += EditClient;
         }
         else
         {
             saveButton.Text = "Добавить";
-            saveButton.Click += SendRequest;
+            saveButton.Click += AddClient;
         }
 
         TableLayoutPanel clientTable = new();
@@ -64,7 +67,7 @@ class ClientEditorForm : Form
         clientLoginTB = CreateTextBox(_client.Login);
         clientFullNameTB = CreateTextBox(_client.FullName);
         clientEmailTB = CreateTextBox(_client.Email);
-        clientPhoneNumberTB = CreateTextBox(_client.PhoneNumber);
+        clientPhoneTB = CreateTextBox(_client.Phone);
 
         clientTable.Controls.Add(CreateLabel("Логин:"), 0, 0);
         clientTable.Controls.Add(CreateLabel("Имя:"), 0, 1);
@@ -74,7 +77,7 @@ class ClientEditorForm : Form
         clientTable.Controls.Add(clientLoginTB, 1, 0);
         clientTable.Controls.Add(clientFullNameTB, 1, 1);
         clientTable.Controls.Add(clientEmailTB, 1, 2);
-        clientTable.Controls.Add(clientPhoneNumberTB, 1, 3);
+        clientTable.Controls.Add(clientPhoneTB, 1, 3);
 
         table.Controls.Add(buttonsPanel, 0, 0);
         table.Controls.Add(clientTable, 0, 1);
@@ -99,71 +102,65 @@ class ClientEditorForm : Form
         return textBox;
     }
 
-    private async void SendRequest(object? sender, EventArgs e)
+    private async void AddClient(object? sender, EventArgs e)
     {
-        if (sender is not Button clickedButton) return;
-        if (!CheckFields() && clickedButton.Text != "Удалить") return;
+        if (!validator.Validate(clientLoginTB, clientFullNameTB, clientEmailTB, clientPhoneTB))
+            return;
 
-        string messageBoxText = "";
-        HttpResponseMessage? response = null;
+        _client.Login = clientLoginTB.Text;
+        _client.FullName = clientFullNameTB.Text;
+        _client.Email = clientEmailTB.Text;
+        _client.Phone = clientPhoneTB.Text;
+        var response = await httpClient.PostAsJsonAsync($"{ApiUrl}/clients", _client);
+        if (!await CheckResponse(response)) return;
+        MessageBox.Show($"Клиент \"{_client.Login}\" добавлен", "Успех✅");
+        CloseWindowOk();
+    }
 
-        if (clickedButton.Text == "Добавить")
-        {
-            messageBoxText = "Клиент добавлен!";
-            response = await httpClient.PostAsJsonAsync($"{apiUrl}/api/clients", _client);
-        }
-        else if (clickedButton.Text == "Сохранить")
-        {
-            messageBoxText = "Клиент изменён!";
-            response = await httpClient.PutAsJsonAsync($"{apiUrl}/api/clients/{_client.Id}", _client);
-        }
-        else if (clickedButton.Text == "Удалить")
-        {
-            messageBoxText = "Клиент удалён!";
-            response = await httpClient.DeleteAsync($"{apiUrl}/api/clients/{_client.Id}");
-        }
+    private async void EditClient(object? sender, EventArgs e)
+    {
+        if (!validator.Validate(clientLoginTB, clientFullNameTB, clientEmailTB, clientPhoneTB))
+            return;
 
-        if (response != null && response.IsSuccessStatusCode)
+        _client.Login = clientLoginTB.Text;
+        _client.FullName = clientFullNameTB.Text;
+        _client.Email = clientEmailTB.Text;
+        _client.Phone = clientPhoneTB.Text;
+        var response = await httpClient.PutAsJsonAsync($"{ApiUrl}/clients/{_client.Id}", _client);
+        if (!await CheckResponse(response)) return;
+        else
         {
-            MessageBox.Show(messageBoxText, "Успех✅");
-            DialogResult = DialogResult.OK;
-            Close();
-        }
-
-        else if (response is null) MessageBox.Show("Неизвестная кнопка", "Ошибка⚠️");
-
-        else if (!response.IsSuccessStatusCode)
-        {
-            var error = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-            MessageBox.Show($"Ошибка: {error}", "Ошибка⚠️");
+            MessageBox.Show($"Клиент \"{_client.Login}\" изменён", "Успех✅");
+            CloseWindowOk();
         }
     }
 
-    private bool CheckFields()
+    private async void DeleteClient(object? sender, EventArgs e)
     {
-        var login = clientLoginTB.Text;
-        var fullName = clientFullNameTB.Text;
-        var email = clientEmailTB.Text;
-        var phoneNumber = clientPhoneNumberTB.Text;
-        if (
-            string.IsNullOrEmpty(login)
-            || string.IsNullOrEmpty(fullName)
-            || string.IsNullOrEmpty(email)
-            || !Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-            || string.IsNullOrEmpty(phoneNumber)
-            || !Regex.IsMatch(phoneNumber, @"^\+\d{8,15}$")
-        )
-        {
-            MessageBox.Show("Заполните все поля правильно!", "Ошибка⚠️");
-            return false;
-        }
+        var response = await httpClient.DeleteAsync($"{ApiUrl}/clients/{_client.Id}");
+        if (!await CheckResponse(response)) return;
         else
         {
-            _client.Login = clientLoginTB.Text;
-            _client.FullName = clientFullNameTB.Text;
-            _client.Email = clientEmailTB.Text;
-            _client.PhoneNumber = clientPhoneNumberTB.Text;
-            return true;
+            MessageBox.Show($"Клиент \"{_client.Login}\" удалён", "Успех✅");
+            CloseWindowOk();
         }
+    }
+
+    private async Task<bool> CheckResponse(HttpResponseMessage response)
+    {
+        if (!response.IsSuccessStatusCode)
+        {
+            var err = await response.Content.ReadFromJsonAsync<ValidationErrors>();
+            var errorsToDisplay = string.Join("\n", err!.Errors.Values.SelectMany(x => x).ToList());
+            MessageBox.Show($"Ошибка: {response.StatusCode}\n{errorsToDisplay}", "Ошибка");
+            return false;
+        }
+        return true;
+    }
+
+    private void CloseWindowOk()
+    {
+        DialogResult = DialogResult.OK;
+        Close();
     }
 }

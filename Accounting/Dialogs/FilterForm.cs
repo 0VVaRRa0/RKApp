@@ -1,24 +1,25 @@
+using System.ComponentModel;
 using System.Net.Http.Json;
-using System.Threading.Tasks;
 using Accounting.Dtos;
 
 namespace Accounting.Dialogs;
 
 public class FilterForm : Form
 {
+    private const string ApiUrl = "http://localhost:8000/api/invoices";
     private DateTimePicker issueDateDTP = null!;
     private DateTimePicker paymentDateDTP = null!;
     private TextBox serviceTB = null!;
     private TextBox clientTB = null!;
     private ComboBox statusCB = null!;
     private Size windowSize = new(650, 250);
-    DataGridView _invoicesDG = null!;
-    public FilterForm(DataGridView invoices)
+    BindingList<InvoiceDto> _invoices = null!;
+    public FilterForm(BindingList<InvoiceDto> invoices)
     {
         Text = "Фильтр";
         Size = windowSize;
         InitializeComponents();
-        _invoicesDG = invoices;
+        _invoices = invoices;
     }
 
     private void InitializeComponents()
@@ -63,7 +64,7 @@ public class FilterForm : Form
 
         statusCB = new();
         statusCB.DropDownStyle = ComboBoxStyle.DropDownList;
-        statusCB.Items.AddRange(["", "PAID", "NOT PAID"]);
+        statusCB.Items.AddRange(["", "Оплачено", "Не оплачено"]);
         statusCB.SelectedIndex = 0;
         statusCB.Dock = DockStyle.Fill;
 
@@ -100,7 +101,7 @@ public class FilterForm : Form
         return dateTimePicker;
     }
 
-    private void Filter(object? sender, EventArgs e)
+    private async void Filter(object? sender, EventArgs e)
     {
         List<string> queryParams = new();
 
@@ -119,19 +120,20 @@ public class FilterForm : Form
             queryParams.Add($"clientLogin={Uri.EscapeDataString(clientLogin)}");
 
         var status = statusCB.SelectedItem as string;
-        if (!string.IsNullOrEmpty(status))
-            queryParams.Add($"status={Uri.EscapeDataString(status)}");
+        if (status == "Оплачено")
+            queryParams.Add($"status={Uri.EscapeDataString("true")}");
+        else if (status == "Не оплачено")
+            queryParams.Add($"status={Uri.EscapeDataString("false")}");
 
         string urlParams = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : "";
 
         HttpClient httpClient = new();
-        var response = httpClient.GetAsync(
-            "http://localhost:8000/api/invoices" + urlParams).GetAwaiter().GetResult();
+        var response = await httpClient.GetAsync(ApiUrl + urlParams);
 
-        var invoices = response.Content.ReadFromJsonAsync<List<InvoiceDto>>().GetAwaiter().GetResult();
-
-        _invoicesDG.DataSource = null;
-        _invoicesDG.DataSource = invoices;
+        var objects = await response.Content.ReadFromJsonAsync<List<InvoiceDto>>();
+        if (objects == null) { MessageBox.Show("Не удалось преобразовать данные", "Ошибка"); return; }
+        _invoices.Clear();
+        foreach (var o in objects) { _invoices.Add(o); }
 
         DialogResult = DialogResult.OK;
         Close();

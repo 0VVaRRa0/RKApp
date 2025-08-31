@@ -1,6 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-
 namespace ServerAPI.Entities;
 
 public partial class Client
@@ -11,9 +8,9 @@ public partial class Client
 
     public string FullName { get; set; } = null!;
 
-    public string Email { get; set; } = null!;
+    public string Phone { get; set; } = null!;
 
-    public string PhoneNumber { get; set; } = null!;
+    public string Email { get; set; } = null!;
 
     public virtual ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
 }

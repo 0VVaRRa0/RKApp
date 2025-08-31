@@ -1,12 +1,16 @@
 using System.Net.Http.Json;
+using Accounting.Dialogs.Validation;
 using Accounting.Dtos;
+using Accounting.Validation;
 
 namespace Accounting.Dialogs;
 
 class ServiceEditorForm : Form
 {
     private readonly HttpClient httpClient = new();
-    private readonly string apiUrl = "http://localhost:8000";
+    private const string ApiUrl = "http://localhost:8000/api";
+    private readonly ErrorProvider _errProvider = new();
+    private ServiceValidation validator = new();
     private Size windowSize = new(683, 384);
     private readonly ServiceDto _service = null!;
     TextBox textBox = null!;
@@ -39,16 +43,16 @@ class ServiceEditorForm : Form
         {
             Button deleteButton = new();
             deleteButton.Text = "Удалить";
-            deleteButton.Click += SendRequest;
+            deleteButton.Click += DeleteService;
             buttonsPanel.Controls.Add(deleteButton);
 
             saveButton.Text = "Сохранить";
-            saveButton.Click += SendRequest;
+            saveButton.Click += EditService;
         }
         else
         {
             saveButton.Text = "Добавить";
-            saveButton.Click += SendRequest;
+            saveButton.Click += AddService;
         }
 
         TableLayoutPanel serviceTable = new();
@@ -74,31 +78,61 @@ class ServiceEditorForm : Form
         Controls.Add(table);
     }
 
-    private async void SendRequest(object? sender, EventArgs e)
+    private async void AddService(object? sender, EventArgs e)
     {
-        if (sender is not Button clickedButton) return;
-        string messageBoxText = "";
-        HttpResponseMessage? response = null;
-        if (clickedButton.Text == "Добавить")
+        if (!validator.Validate(textBox))
+            return;
+
+        _service.Name = textBox.Text;
+        var response = await httpClient.PostAsJsonAsync($"{ApiUrl}/services", _service);
+        if (!await CheckResponse(response)) return;
+        else
         {
-            if (textBox.Text == "") { MessageBox.Show("Заполните все поля!", "Ошибка⚠️"); return; }
-            _service.Name = textBox.Text;
-            messageBoxText = "Услуга добавлена!";
-            response = await httpClient.PostAsJsonAsync($"{apiUrl}/api/services", _service);
+            MessageBox.Show($"Услуга \"{_service.Name}\" добавлена", "Успех✅");
+            CloseWindowOk();
         }
-        else if (clickedButton.Text == "Сохранить")
+    }
+
+    private async void EditService(object? sender, EventArgs e)
+    {
+        if (!validator.Validate(textBox))
+            return;
+
+        _service.Name = textBox.Text;
+        var response = await httpClient.PutAsJsonAsync($"{ApiUrl}/services/{_service.Id}", _service);
+        if (!await CheckResponse(response)) return;
+        else
         {
-            if (textBox.Text == "") { MessageBox.Show("Заполните все поля!", "Ошибка⚠️"); return; }
-            _service.Name = textBox.Text;
-            messageBoxText = "Услуга изменена!";
-            response = await httpClient.PutAsJsonAsync($"{apiUrl}/api/services/{_service.Id}", _service);
+            MessageBox.Show($"Услуга \"{_service.Name}\" изменена", "Успех✅");
+            CloseWindowOk();
         }
-        else if (clickedButton.Text == "Удалить")
+    }
+
+    private async void DeleteService(object? sender, EventArgs e)
+    {
+        var response = await httpClient.DeleteAsync($"{ApiUrl}/services/{_service.Id}");
+        if (!await CheckResponse(response)) return;
+        else
         {
-            messageBoxText = "Услуга удалена!";
-            response = await httpClient.DeleteAsync($"{apiUrl}/api/services/{_service.Id}");
+            MessageBox.Show($"Услуга \"{_service.Name}\" удалена", "Успех✅");
+            CloseWindowOk();
         }
-        if (response!.IsSuccessStatusCode) MessageBox.Show(messageBoxText, "Успех✅");
+    }
+
+    private async Task<bool> CheckResponse(HttpResponseMessage response)
+    {
+        if (!response.IsSuccessStatusCode)
+        {
+            var err = await response.Content.ReadFromJsonAsync<ValidationErrors>();
+            var errorsToDisplay = string.Join("\n", err!.Errors.Values.SelectMany(x => x).ToList());
+            MessageBox.Show($"Ошибка: {response.StatusCode}\n{errorsToDisplay}", "Ошибка");
+            return false;
+        }
+        return true;
+    }
+
+    private void CloseWindowOk()
+    {
         DialogResult = DialogResult.OK;
         Close();
     }
