@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Accounting.Dialogs.Validation;
+namespace Accounting.Validation;
 
 public class ClientValidation
 {

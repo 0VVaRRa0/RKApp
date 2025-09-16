@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.SignalR.Client;
 
+namespace Accounting.SignalR;
+
 public class SignalR
 {
     private readonly HubConnection _connection;

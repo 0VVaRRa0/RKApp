@@ -2,6 +2,8 @@ using AutoMapper;
 using ServerAPI.Dtos;
 using ServerAPI.Entities;
 
+namespace ServerAPI.Mapper;
+
 public class MappingProfile : Profile
 {
     public MappingProfile()

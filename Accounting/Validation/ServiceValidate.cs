@@ -1,4 +1,4 @@
-namespace Accounting.Dialogs.Validation;
+namespace Accounting.Validation;
 
 public class ServiceValidation
 {

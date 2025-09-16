@@ -2,6 +2,7 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using ServerAPI.Entities;
+using ServerAPI.Mapper;
 using ServerAPI.SignalR;
 
 var builder = WebApplication.CreateBuilder(args);

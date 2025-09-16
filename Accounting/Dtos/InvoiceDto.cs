@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace Accounting.Dtos;
 
 public class InvoiceDto
